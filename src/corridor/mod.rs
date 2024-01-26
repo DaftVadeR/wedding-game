@@ -7,20 +7,21 @@ use crate::GameState;
 pub struct CorridorPlugin;
 
 // mod level;
-// mod player;
+mod player;
+mod sprite;
 
 // use level::LevelPlugin;
-// use player::PlayerPlugin;
+use player::PlayerPlugin;
 
 impl Plugin for CorridorPlugin {
     fn build(&self, app: &mut App) {
+        app.add_plugins(PlayerPlugin);
         app.add_systems(
             OnEnter(GameState::StartingCorridor),
             (reset_camera, spawn_corridor),
         )
         .add_systems(OnExit(GameState::StartingCorridor), despawn_corridor);
-        // .add_plugins(LevelPlugin)
-        // .add_plugins(PlayerPlugin);
+        // .add_plugins(LevelPlugin);
     }
 }
 

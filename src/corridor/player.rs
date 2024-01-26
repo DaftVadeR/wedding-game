@@ -1,18 +1,24 @@
-// use bevy::{prelude::{
-//     default,
-//     Vec2, Rect, Input, KeyCode, Time, Transform, Sprite, AudioSink, Res, ResMut, NextState, App, Query, SpriteBundle, AudioBundle, Component, Commands, AssetServer, Plugin, Startup
-// }};
-
-use crate::sprite::{
-    AnimationIndices, AnimationTimer, Direction, Health, Movable, SpriteSheetAnimatable,
-};
-use crate::state::{GameState, GameplayOnly, PIXEL_TO_WORLD};
-
 use bevy::prelude::*;
+
+use crate::corridor::sprite::{
+    AnimationIndices, AnimationTimer, Direction, Movable, SpriteSheetAnimatable,
+};
+
+use crate::GameState;
+
+#[derive(States, PartialEq, Eq, Default, Debug, Clone, Hash)]
+pub enum PlayerState {
+    #[default]
+    PlayerInit,
+    PlayerStart,
+}
 
 const PLAYER_SPEED_DEFAULT: f32 = 100.;
 
 pub struct PlayerPlugin;
+
+#[derive(Component)]
+pub struct GameplayOnly;
 
 #[derive(Debug, Component)]
 pub struct CanLevel {
@@ -25,10 +31,16 @@ pub struct Player;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, setup);
-        app.add_systems(Update, animate_sprite);
-        app.add_systems(Update, player_movement);
-        app.add_systems(Update, update_camera_from_player_position);
+        app.add_state::<PlayerState>()
+            .add_systems(OnEnter(PlayerState::PlayerInit), setup);
+        // .add_systems(
+        //     Update,
+        //     (
+        //         animate_sprite,
+        //         player_movement,
+        //         update_camera_from_player_position,
+        //     ),
+        // );
 
         // app.add_systems(Startup, /*OnEnter(GameState::StartingLoop),*/ spawn_player);
         /*.add_systems(
@@ -133,8 +145,8 @@ pub fn player_movement(
         key_pressed = true;
     }
 
-    transform.translation.x = transform.translation.x.clamp(-1000.0, 1000.0);
-    transform.translation.y = transform.translation.y.clamp(-1000.0, 1000.0);
+    transform.translation.x = transform.translation.x.clamp(-100.0, 100.0);
+    transform.translation.y = transform.translation.y.clamp(0.0, 1000.0);
 
     // If it changed
     if movable.is_moving != key_pressed {
@@ -184,7 +196,7 @@ fn setup(
     // let texture_handle = asset_server.load("player/knight_idle_spritesheet.png");
     // let texture_handle_run = asset_server.load("player/knight_run_spritesheet.png");
 
-    let texture_handle = asset_server.load("player/knight_all_anims_spritesheet.png");
+    let texture_handle = asset_server.load("sprites/player/knight_all_anims_spritesheet.png");
 
     // let builder = TextureAtlasBuilder::default().initial_size(Vec2 { x: 96., y: 32. });
     // builder.add_texture(, texture)
@@ -223,7 +235,6 @@ fn setup(
             direction: Direction::Right,
             is_moving: false,
         },
-        Health(100.),
         CanLevel {
             experience: 0,
             level: 1,

@@ -12,8 +12,8 @@ use main_menu::MainMenuPlugin;
 
 mod corridor;
 // mod game;
-mod game_over;
-mod game_won;
+// mod game_over;
+// mod game_won;
 mod main_menu;
 
 const WIDTH: f32 = 1600.0;
