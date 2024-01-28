@@ -1,18 +1,23 @@
 use bevy::prelude::*;
 use bevy::sprite::Anchor;
 
-use crate::corridor::sprite::{
-    AnimationIndices, AnimationTimer, Direction, Movable, SpriteSheetAnimatable,
-};
+use crate::corridor::sprite::AnimationIndices;
 
-use crate::corridor::player::{CanLevel, GameplayOnly, Player, PlayerState};
+use crate::corridor::player::{CorridorPlayerState, Player};
+use crate::util_fade::FadeState;
+use crate::GameState;
 
 pub struct LevelPlugin;
 use rand::Rng;
 
+use super::player::CorridorLevelState;
+
 impl Plugin for LevelPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, setup);
+        app.add_state::<CorridorLevelState>()
+            .add_systems(OnEnter(CorridorLevelState::Init), setup)
+            .add_systems(Update, update.run_if(in_state(CorridorLevelState::Started)))
+            .add_systems(OnExit(GameState::Corridor), unload);
     }
 }
 
@@ -22,17 +27,98 @@ pub const MAP_HEIGHT: f32 = 384.;
 // Used to make sure the level bottom is just below player. So you know to go up.
 pub const MAP_VERTICAL_OFFSET: f32 = 80.;
 
-pub struct Level {
-    pub tilemap: String,
-    pub height: f32,
-    pub width: f32,
+#[derive(Debug, Component)]
+pub struct Wall {}
+
+#[derive(Debug, Component)]
+pub struct Floor {}
+
+fn unload(
+    mut walls: Query<Entity, With<Wall>>,
+    mut floor: Query<Entity, With<Floor>>,
+    mut door: Query<Entity, With<Door>>,
+    mut commands: Commands,
+    // mut player: Query<Entity, With<Player>>,
+) {
+    for wall in &mut walls.iter_mut() {
+        commands.entity(wall).despawn_recursive();
+    }
+
+    for floor in &mut floor.iter_mut() {
+        commands.entity(floor).despawn_recursive();
+    }
+
+    for door in &mut door.iter_mut() {
+        commands.entity(door).despawn_recursive();
+    }
+}
+
+fn update(
+    mut door_query: Query<(&mut TextureAtlasSprite, &Transform, &mut Door), With<Door>>,
+    player_query: Query<&Transform, With<Player>>,
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    time: Res<Time>,
+    mut texture_atlases: ResMut<Assets<TextureAtlas>>,
+    game_state: ResMut<State<GameState>>,
+    mut next_corridor_state: ResMut<NextState<CorridorLevelState>>,
+    mut next_game_state: ResMut<NextState<GameState>>,
+    mut next_player_state: ResMut<NextState<CorridorPlayerState>>,
+    mut next_fade_state: ResMut<NextState<FadeState>>,
+) {
+    let (mut texture_atlas_sprite, door_transform, mut door) = door_query.single_mut();
+    let (player_transform) = player_query.single();
+
+    let detection_area = 16.;
+
+    let is_near_door_x = player_transform.translation.x > -1. * detection_area
+        && player_transform.translation.x < detection_area;
+
+    let is_near_door_y =
+        player_transform.translation.y > MAP_HEIGHT - MAP_VERTICAL_OFFSET - detection_area;
+
+    println!(
+        "player position: {} {}",
+        player_transform.translation.x, player_transform.translation.y,
+    );
+    println!(
+        "door position: {} {}",
+        door_transform.translation.x, door_transform.translation.y,
+    );
+    // Check if player is in the right spot to open the door.
+    if is_near_door_x && is_near_door_y {
+        if !door.is_open {
+            println!("Door opened");
+            door.is_open = true;
+            texture_atlas_sprite.index = door.animation_indices.last;
+            next_fade_state.set(FadeState::FadeToBlack);
+        }
+    }
+
+    if door.is_open {
+        println!("Door is open");
+        if door.open_timer.finished() {
+            println!("Change to Game Won From Corridor");
+            next_game_state.set(GameState::GameWon);
+            next_corridor_state.set(CorridorLevelState::Unloaded);
+            next_player_state.set(CorridorPlayerState::Unloaded);
+        } else {
+            println!("Door tick timer");
+            door.open_timer.tick(time.delta());
+        }
+    }
+
+    // Check for collision with player
 }
 
 fn setup(
     mut commands: Commands,
+    mut next_corridor_state: ResMut<NextState<CorridorLevelState>>,
     asset_server: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
 ) {
+    println!("Corridor level setup");
+
     // Sprite stuff
     let block_width = 16.;
     let block_height = 16.;
@@ -60,7 +146,7 @@ fn setup(
 
     //commands.spawn(Camera2dBundle::default());
     for index in 0..total_tiles {
-        println!("INDEX {} {} {}", index, rolling_x, rolling_y);
+        // println!("INDEX {} {} {}", index, rolling_x, rolling_y);
 
         let texture_handle = asset_server.load("sprites/level/dungeon-floor.png");
 
@@ -94,7 +180,7 @@ fn setup(
                 // global_transform: Transform::
                 ..default()
             },
-            GameplayOnly,
+            Floor {},
         ));
 
         rolling_x += block_width;
@@ -141,6 +227,8 @@ fn setup(
         &asset_server,
         &mut texture_atlases,
     );
+
+    next_corridor_state.set(CorridorLevelState::Started);
 }
 
 fn draw_side_walls(
@@ -177,8 +265,8 @@ fn draw_side_walls(
 
         let texture_atlas_handle = texture_atlases.add(texture_atlas);
 
-        commands.spawn(
-            (SpriteSheetBundle {
+        commands.spawn((
+            SpriteSheetBundle {
                 texture_atlas: texture_atlas_handle,
                 sprite: TextureAtlasSprite {
                     index: animation_indices.first,
@@ -191,8 +279,9 @@ fn draw_side_walls(
                     ..default()
                 },
                 ..default()
-            }),
-        );
+            },
+            Wall {},
+        ));
 
         rolling_y += block_height;
     }
@@ -251,8 +340,8 @@ fn draw_bottom_walls(
 
     // Left walls
     for index in 0..num_walls {
-        commands.spawn(
-            (SpriteBundle {
+        commands.spawn((
+            SpriteBundle {
                 texture: asset_server.load("sprites/level/walls-south.png"),
                 sprite: Sprite {
                     anchor: Anchor::BottomLeft,
@@ -264,8 +353,9 @@ fn draw_bottom_walls(
                     ..default()
                 },
                 ..default()
-            }),
-        );
+            },
+            Wall {},
+        ));
 
         rolling_x += block_width;
     }
@@ -304,8 +394,8 @@ fn draw_top_walls(
         let random_index: usize = rng.gen_range(0..total_atlas_blocks);
 
         let texture_atlas_handle = texture_atlases.add(texture_atlas);
-        commands.spawn(
-            (SpriteSheetBundle {
+        commands.spawn((
+            SpriteSheetBundle {
                 texture_atlas: texture_atlas_handle,
                 sprite: TextureAtlasSprite {
                     index: random_index,
@@ -318,17 +408,29 @@ fn draw_top_walls(
                     ..default()
                 },
                 ..default()
-            }),
-        );
+            },
+            Wall {},
+        ));
 
         rolling_x += block_width;
     }
 }
 
 #[derive(Debug, Component)]
-struct DoorAnimationIndices {
-    first: usize,
-    last: usize,
+struct Door {
+    is_open: bool,
+    animation_indices: AnimationIndices,
+    open_timer: Timer,
+}
+
+impl Door {
+    pub fn new() -> Self {
+        Self {
+            is_open: false,
+            open_timer: Timer::from_seconds(1., TimerMode::Once),
+            animation_indices: AnimationIndices { first: 0, last: 1 },
+        }
+    }
 }
 
 fn draw_top_door(
@@ -352,14 +454,13 @@ fn draw_top_door(
     );
 
     let texture_atlas_handle = texture_atlases.add(texture_atlas);
-
-    let animation_indices = DoorAnimationIndices { first: 0, last: 1 };
+    let door = Door::new();
 
     commands.spawn((
         SpriteSheetBundle {
             texture_atlas: texture_atlas_handle,
             sprite: TextureAtlasSprite {
-                index: animation_indices.first,
+                index: door.animation_indices.first,
                 anchor: Anchor::BottomLeft,
                 ..default()
             },
@@ -370,6 +471,39 @@ fn draw_top_door(
             },
             ..default()
         },
-        animation_indices,
+        door,
     ));
 }
+
+// /// This system ticks the `Timer` on the entity with the `PrintOnCompletionTimer`
+// /// component using bevy's `Time` resource to get the delta between each update.
+// fn print_when_completed(time: Res<Time>, mut query: Query<&mut PrintOnCompletionTimer>) {
+//     for mut timer in &mut query {
+//         if timer.tick(time.delta()).just_finished() {
+//             info!("Entity timer just finished");
+//         }
+//     }
+// }
+
+// /// This system controls ticking the timer within the countdown resource and
+// /// handling its state.
+// fn countdown(time: Res<Time>, mut door: Query<&Door>) {
+//     countdown.main_timer.tick(time.delta());
+
+//     // The API encourages this kind of timer state checking (if you're only checking for one value)
+//     // Additionally, `finished()` would accomplish the same thing as `just_finished` due to the
+//     // timer being repeating, however this makes more sense visually.
+//     if countdown.percent_trigger.tick(time.delta()).just_finished() {
+//         if !countdown.main_timer.finished() {
+//             // Print the percent complete the main timer is.
+//             info!(
+//                 "Timer is {:0.0}% complete!",
+//                 countdown.main_timer.fraction() * 100.0
+//             );
+//         } else {
+//             // The timer has finished so we pause the percent output timer
+//             countdown.percent_trigger.pause();
+//             info!("Paused percent trigger timer");
+//         }
+//     }
+// }

@@ -2,6 +2,7 @@ use bevy::app::{AppExit, Plugin};
 use bevy::audio::{PlaybackMode, Volume, VolumeLevel};
 use bevy::prelude::*;
 
+use crate::util_fade::FadeState;
 use crate::GameState;
 
 pub struct MainMenuPlugin;
@@ -15,9 +16,11 @@ impl Plugin for MainMenuPlugin {
         .add_systems(OnExit(GameState::MainMenu), despawn_main_menu_ui)
         // .add_systems(OnEnter(GameState::GameOver), spawn_game_over_ui)
         // .add_systems(OnExit(GameState::GameOver), despawn_game_over_ui)
-        .add_systems(Startup, play_music)
-        .add_systems(Update, start_button_system)
-        .add_systems(Update, exit_button_system);
+        // .add_systems(Startup, play_music)
+        .add_systems(
+            Update,
+            (start_button_system, exit_button_system).run_if(in_state(GameState::MainMenu)),
+        );
     }
 }
 
@@ -161,13 +164,15 @@ fn start_button_system(
         (&Interaction, &mut BackgroundColor),
         (With<Button>, With<StartButtonUI>),
     >,
-    mut next_state: ResMut<NextState<GameState>>,
+    mut next_game_state: ResMut<NextState<GameState>>,
+    mut next_fade_state: ResMut<NextState<FadeState>>,
 ) {
     for (interaction, mut color) in &mut interaction_query {
         match *interaction {
             Interaction::Pressed => {
                 *color = PRESSED_BUTTON.into();
-                next_state.set(GameState::StartingCorridor);
+                next_fade_state.set(FadeState::FadeToGame);
+                next_game_state.set(GameState::Corridor);
             }
             Interaction::Hovered => {
                 *color = HOVERED_BUTTON.into();
@@ -215,13 +220,28 @@ pub fn reset_camera(
 }
 
 fn play_music(music_controller: Query<&AudioSink, With<MyMusic>>, time: Res<Time>) {
-    if let Ok(sink) = music_controller.get_single() {
-        // sink.toggle();
-    }
+    // if let Ok(sink) = music_controller.get_single() {
+    //     // sink.toggle();
+    // }
 }
 
-fn despawn_main_menu_ui(mut commands: Commands, ui: Query<Entity, With<MainMenuUI>>) {
-    for ui in &ui {
+fn despawn_main_menu_ui(
+    mut commands: Commands,
+    ui_query: Query<Entity, With<MainMenuUI>>,
+    music_query: Query<Entity, With<MyMusic>>,
+    sb_query: Query<Entity, With<StartButtonUI>>,
+    eb_query: Query<Entity, With<ExitButtonUI>>,
+) {
+    for ui in &ui_query {
         commands.entity(ui).despawn_recursive();
     }
+    for music in &music_query {
+        commands.entity(music).despawn_recursive();
+    }
+    // for exit in &eb_query {
+    //     commands.entity(exit).despawn_recursive();
+    // }
+    // for start in &sb_query {
+    //     commands.entity(start).despawn_recursive();
+    // }
 }

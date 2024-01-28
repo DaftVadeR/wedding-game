@@ -13,17 +13,13 @@ impl Plugin for GameWonPlugin {
 }
 
 fn spawn_game_won_scene(mut commands: Commands, asset_server: Res<AssetServer>) {
-    // commands.spawn(Camera2dBundle {
-    //     transform: Transform::from_xyz(0., 0., 0.),
-    //     projection: OrthographicProjection {
-    //         far: 1000.,
-    //         near: -1000.,
-    //         scale: 0.5,
-    //         ..default()
-    //     },
-    //     ..default()
-    // });
-    // commands.spawn()gcc=
+    commands.spawn(
+        (SpriteBundle {
+            material: asset_server.load("sprites/level/tx_tileset_grass.png"),
+            transform: Transform::from_translation(Vec3::new(0., 0., 0.)),
+            ..Default::default()
+        }),
+    );
 }
 
 fn despawn_game_won_scene(

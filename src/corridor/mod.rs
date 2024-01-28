@@ -1,8 +1,7 @@
 use bevy::app::Plugin;
-use bevy::core_pipeline::clear_color::ClearColorConfig;
 use bevy::prelude::*;
 
-use crate::corridor::player::PlayerState;
+use crate::corridor::player::{CorridorLevelState, CorridorPlayerState};
 use crate::GameState;
 pub struct CorridorPlugin;
 
@@ -15,13 +14,9 @@ use player::PlayerPlugin;
 
 impl Plugin for CorridorPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(
-            OnEnter(GameState::StartingCorridor),
-            (reset_camera, spawn_corridor),
-        )
-        // .add_systems(OnExit(GameState::StartingCorridor), despawn_corridor)
-        .add_plugins(LevelPlugin)
-        .add_plugins(PlayerPlugin);
+        app.add_systems(OnEnter(GameState::Corridor), (reset_camera, spawn_corridor))
+            .add_plugins(LevelPlugin)
+            .add_plugins(PlayerPlugin);
     }
 }
 
@@ -39,10 +34,12 @@ pub fn reset_camera(
 fn spawn_corridor(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
-    mut next_state: ResMut<NextState<PlayerState>>,
+    mut next_player_state: ResMut<NextState<CorridorPlayerState>>,
+    mut next_level_state: ResMut<NextState<CorridorLevelState>>,
 ) {
     println!("Loading corridor plugin");
-    next_state.set(PlayerState::PlayerInit);
+    next_player_state.set(CorridorPlayerState::Init);
+    next_level_state.set(CorridorLevelState::Init);
 }
 
 // fn despawn_corridor(mut commands: Commands, asset_server: Res<AssetServer>) {}

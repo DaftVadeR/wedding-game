@@ -10,11 +10,11 @@ use crate::GameState;
 use super::level::MAP_WIDTH;
 
 #[derive(States, PartialEq, Eq, Default, Debug, Clone, Hash)]
-pub enum PlayerState {
+pub enum CorridorPlayerState {
     #[default]
-    PlayerUnloaded,
-    PlayerInit,
-    PlayerStart,
+    Unloaded,
+    Init,
+    Started,
 }
 
 const PLAYER_SPEED_DEFAULT: f32 = 100.;
@@ -39,15 +39,17 @@ impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         println!("Loading player plugin");
 
-        app.add_state::<PlayerState>()
-            .add_systems(OnEnter(PlayerState::PlayerInit), setup)
+        app.add_state::<CorridorPlayerState>()
+            .add_systems(OnEnter(CorridorPlayerState::Init), setup)
+            .add_systems(OnExit(GameState::Corridor), unload)
             .add_systems(
                 Update,
                 (
                     animate_sprite,
                     player_movement,
                     update_camera_from_player_position,
-                ),
+                )
+                    .run_if(in_state(CorridorPlayerState::Started)),
             );
         //
         // app.add_systems(Startup, /*OnEnter(GameState::StartingLoop),*/ spawn_player);
@@ -74,13 +76,32 @@ impl Plugin for PlayerPlugin {
     }
 }
 
+#[derive(States, PartialEq, Eq, Default, Debug, Clone, Hash)]
+pub enum CorridorLevelState {
+    #[default]
+    Unloaded,
+    Init,
+    Started,
+}
+
+pub fn unload(
+    mut query: Query<Entity, With<Player>>,
+    mut next_state: ResMut<NextState<CorridorPlayerState>>,
+    mut state: ResMut<State<CorridorPlayerState>>,
+    mut commands: Commands,
+) {
+    for (entity) in query.iter_mut() {
+        commands.entity(entity).despawn_recursive();
+    }
+}
+
 pub fn update_camera_from_player_position(
     query: Query<(&Transform), (With<Player>)>,
     mut camera_query: Query<(&mut Transform), (With<Camera>, Without<Player>)>,
-    mut next_state: ResMut<NextState<PlayerState>>,
-    mut state: ResMut<State<PlayerState>>,
+    mut next_state: ResMut<NextState<CorridorPlayerState>>,
+    mut state: ResMut<State<CorridorPlayerState>>,
 ) {
-    if state.get() != &PlayerState::PlayerStart {
+    if state.get() != &CorridorPlayerState::Started {
         return;
     }
 
@@ -105,10 +126,10 @@ pub fn player_movement(
     >,
     input: Res<Input<KeyCode>>,
     time: Res<Time>,
-    mut next_state: ResMut<NextState<PlayerState>>,
-    mut state: ResMut<State<PlayerState>>,
+    mut next_state: ResMut<NextState<CorridorPlayerState>>,
+    mut state: ResMut<State<CorridorPlayerState>>,
 ) {
-    if state.get() != &PlayerState::PlayerStart {
+    if state.get() != &CorridorPlayerState::Started {
         return;
     }
 
@@ -196,10 +217,10 @@ fn animate_sprite(
         &mut TextureAtlasSprite,
         &Movable,
     )>,
-    mut next_state: ResMut<NextState<PlayerState>>,
-    mut state: ResMut<State<PlayerState>>,
+    mut next_state: ResMut<NextState<CorridorPlayerState>>,
+    mut state: ResMut<State<CorridorPlayerState>>,
 ) {
-    if state.get() != &PlayerState::PlayerStart {
+    if state.get() != &CorridorPlayerState::Started {
         return;
     }
 
@@ -225,7 +246,7 @@ fn setup(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
-    mut next_state: ResMut<NextState<PlayerState>>,
+    mut next_state: ResMut<NextState<CorridorPlayerState>>,
     // mut meshes: ResMut<Assets<Mesh>>,
     // mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
@@ -270,7 +291,6 @@ fn setup(
         },
         AnimationTimer(Timer::from_seconds(0.1, TimerMode::Repeating)),
         Player,
-        GameplayOnly,
         SpriteSheetAnimatable {
             idle_anim_indices: idle_animation_indices,
             moving_anim_indices: run_animation_indices,
@@ -280,11 +300,7 @@ fn setup(
             direction: Direction::Right,
             is_moving: false,
         },
-        CanLevel {
-            experience: 0,
-            level: 1,
-        },
     ));
 
-    next_state.set(PlayerState::PlayerStart);
+    next_state.set(CorridorPlayerState::Started);
 }

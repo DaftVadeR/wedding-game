@@ -1,17 +1,16 @@
 use std::hash::Hash;
 
-use bevy::app::AppExit;
 use bevy::core_pipeline::clear_color::ClearColorConfig;
 use bevy::prelude::*;
-
-//use state::{GameState, GameplayOnly};
 
 use bevy::{input::common_conditions::input_toggle_active, time::Stopwatch};
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use corridor::CorridorPlugin;
 use main_menu::MainMenuPlugin;
+use util_fade::FadePlugin;
 
 mod corridor;
+mod util_fade;
 // mod game;
 // mod game_over;
 // mod game_won;
@@ -25,7 +24,6 @@ pub enum GameState {
     #[default]
     MainMenu,
     Corridor,
-    StartingCorridor,
     Gameplay,
     StartingGameplay,
     LevelUp,
@@ -52,6 +50,7 @@ fn main() {
         .add_state::<GameState>()
         .add_systems(Startup, setup)
         .add_plugins((
+            FadePlugin,
             MainMenuPlugin,
             CorridorPlugin, /*GamePlugin, GameOver, GameWon*/
         ))
