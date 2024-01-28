@@ -8,6 +8,7 @@ use bevy::prelude::*;
 
 use bevy::{input::common_conditions::input_toggle_active, time::Stopwatch};
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
+use corridor::CorridorPlugin;
 use main_menu::MainMenuPlugin;
 
 mod corridor;
@@ -50,28 +51,27 @@ fn main() {
         )
         .add_state::<GameState>()
         .add_systems(Startup, setup)
-        .add_plugins(MainMenuPlugin)
+        .add_plugins((
+            MainMenuPlugin,
+            CorridorPlugin, /*GamePlugin, GameOver, GameWon*/
+        ))
         .add_plugins(
             WorldInspectorPlugin::default().run_if(input_toggle_active(false, KeyCode::Escape)),
         )
-        //.add_plugins(LevelPlugin)
-        //.add_plugins(PlayerPlugin)
-        //.add_plugins(EnemySpawnerPlugin)
-        // .add_systems(OnExit(GameState::GameOver), despawn_game_play)
         .run();
 }
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(Camera2dBundle {
         camera_2d: Camera2d {
-            clear_color: ClearColorConfig::Custom(Color::GREEN),
+            clear_color: ClearColorConfig::Custom(Color::BLACK),
             ..default()
         },
         transform: Transform::from_xyz(0., 0., 0.),
         projection: OrthographicProjection {
             far: 1000.,
             near: -1000.,
-            scale: 0.5,
+            scale: 0.3,
             ..default()
         },
         ..default()

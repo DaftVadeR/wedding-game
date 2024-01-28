@@ -1,5 +1,5 @@
 use bevy::app::{AppExit, Plugin};
-use bevy::core_pipeline::clear_color::ClearColorConfig;
+use bevy::audio::{PlaybackMode, Volume, VolumeLevel};
 use bevy::prelude::*;
 
 use crate::GameState;
@@ -142,14 +142,18 @@ fn spawn_main_menu_ui(mut commands: Commands, assets: Res<AssetServer>) {
     commands.spawn((
         AudioBundle {
             source: assets.load("music/loopnice2.ogg"),
-            ..default()
+            settings: PlaybackSettings {
+                mode: PlaybackMode::Loop,
+                volume: Volume::Absolute(VolumeLevel::new(0.2)),
+                ..default()
+            },
         },
         MyMusic,
     ));
 }
 
 const NORMAL_BUTTON: Color = Color::CRIMSON;
-const HOVERED_BUTTON: Color = Color::TURQUOISE;
+const HOVERED_BUTTON: Color = Color::PURPLE;
 const PRESSED_BUTTON: Color = Color::RED;
 
 fn start_button_system(

@@ -1,19 +1,25 @@
 use bevy::prelude::*;
 
+use crate::corridor::level::{MAP_HEIGHT, MAP_VERTICAL_OFFSET};
 use crate::corridor::sprite::{
     AnimationIndices, AnimationTimer, Direction, Movable, SpriteSheetAnimatable,
 };
 
 use crate::GameState;
 
+use super::level::MAP_WIDTH;
+
 #[derive(States, PartialEq, Eq, Default, Debug, Clone, Hash)]
 pub enum PlayerState {
     #[default]
+    PlayerUnloaded,
     PlayerInit,
     PlayerStart,
 }
 
 const PLAYER_SPEED_DEFAULT: f32 = 100.;
+const PLAYER_WIDTH: f32 = 16.;
+const PLAYER_HEIGHT: f32 = 16.;
 
 pub struct PlayerPlugin;
 
@@ -31,17 +37,19 @@ pub struct Player;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_state::<PlayerState>()
-            .add_systems(OnEnter(PlayerState::PlayerInit), setup);
-        // .add_systems(
-        //     Update,
-        //     (
-        //         animate_sprite,
-        //         player_movement,
-        //         update_camera_from_player_position,
-        //     ),
-        // );
+        println!("Loading player plugin");
 
+        app.add_state::<PlayerState>()
+            .add_systems(OnEnter(PlayerState::PlayerInit), setup)
+            .add_systems(
+                Update,
+                (
+                    animate_sprite,
+                    player_movement,
+                    update_camera_from_player_position,
+                ),
+            );
+        //
         // app.add_systems(Startup, /*OnEnter(GameState::StartingLoop),*/ spawn_player);
         /*.add_systems(
             (
@@ -60,7 +68,7 @@ impl Plugin for PlayerPlugin {
         // fixed_update_loop_schedule.set_executor_kind(ExecutorKind::SingleThreaded);
 
         // app.add_schedule(main_schedule)
-        //     .add_schedule(fixed_update_loop_schedule)
+        //     .add_schedule(fixed_updat    e_loop_schedule)
         //     .init_resource::<MainScheduleOrder>()
         //     .add_systems(Main, Main::run_main);
     }
@@ -69,7 +77,13 @@ impl Plugin for PlayerPlugin {
 pub fn update_camera_from_player_position(
     query: Query<(&Transform), (With<Player>)>,
     mut camera_query: Query<(&mut Transform), (With<Camera>, Without<Player>)>,
+    mut next_state: ResMut<NextState<PlayerState>>,
+    mut state: ResMut<State<PlayerState>>,
 ) {
+    if state.get() != &PlayerState::PlayerStart {
+        return;
+    }
+
     let player_transform = query.single();
 
     let mut camera_transform = camera_query.single_mut();
@@ -91,7 +105,13 @@ pub fn player_movement(
     >,
     input: Res<Input<KeyCode>>,
     time: Res<Time>,
+    mut next_state: ResMut<NextState<PlayerState>>,
+    mut state: ResMut<State<PlayerState>>,
 ) {
+    if state.get() != &PlayerState::PlayerStart {
+        return;
+    }
+
     let (mut movable, mut sprite, mut transform, animatable) = player.single_mut();
 
     let normal_translation = time.delta_seconds() * movable.speed;
@@ -145,8 +165,15 @@ pub fn player_movement(
         key_pressed = true;
     }
 
-    transform.translation.x = transform.translation.x.clamp(-100.0, 100.0);
-    transform.translation.y = transform.translation.y.clamp(0.0, 1000.0);
+    transform.translation.x = transform.translation.x.clamp(
+        -1. * (MAP_WIDTH / 2.) + PLAYER_WIDTH / 2.,
+        MAP_WIDTH / 2. - PLAYER_WIDTH / 2.,
+    );
+
+    transform.translation.y = transform.translation.y.clamp(
+        -1. * (MAP_VERTICAL_OFFSET) + PLAYER_HEIGHT / 2.,
+        (MAP_HEIGHT - MAP_VERTICAL_OFFSET - PLAYER_HEIGHT / 2.),
+    );
 
     // If it changed
     if movable.is_moving != key_pressed {
@@ -169,7 +196,13 @@ fn animate_sprite(
         &mut TextureAtlasSprite,
         &Movable,
     )>,
+    mut next_state: ResMut<NextState<PlayerState>>,
+    mut state: ResMut<State<PlayerState>>,
 ) {
+    if state.get() != &PlayerState::PlayerStart {
+        return;
+    }
+
     for (animateable, mut timer, mut sprite, movable) in &mut query {
         let indices = if !movable.is_moving {
             &animateable.idle_anim_indices
@@ -192,17 +225,27 @@ fn setup(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
+    mut next_state: ResMut<NextState<PlayerState>>,
+    // mut meshes: ResMut<Assets<Mesh>>,
+    // mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
     // let texture_handle = asset_server.load("player/knight_idle_spritesheet.png");
     // let texture_handle_run = asset_server.load("player/knight_run_spritesheet.png");
+    println!("Loading player spritesheet");
 
     let texture_handle = asset_server.load("sprites/player/knight_all_anims_spritesheet.png");
 
     // let builder = TextureAtlasBuilder::default().initial_size(Vec2 { x: 96., y: 32. });
     // builder.add_texture(, texture)
 
-    let texture_atlas =
-        TextureAtlas::from_grid(texture_handle, Vec2::new(16.0, 16.0), 6, 2, None, None);
+    let texture_atlas = TextureAtlas::from_grid(
+        texture_handle,
+        Vec2::new(PLAYER_WIDTH, PLAYER_HEIGHT),
+        6,
+        2,
+        None,
+        None,
+    );
 
     // texture_atlas.
     // let texture_atlas_run =
@@ -215,12 +258,14 @@ fn setup(
     let idle_animation_indices = AnimationIndices { first: 0, last: 5 };
     let run_animation_indices = AnimationIndices { first: 6, last: 11 };
 
-    //commands.spawn(Camera2dBundle::default());
+    // Spawn Level
+    // let map_bottom_y_pos = -1. * (MAP_HEIGHT / 2.) + MAP_VERTICAL_OFFSET;
+
     commands.spawn((
         SpriteSheetBundle {
             texture_atlas: texture_atlas_handle,
             sprite: TextureAtlasSprite::new(idle_animation_indices.first),
-            transform: Transform::from_scale(Vec3::splat(1.0)),
+            transform: Transform::from_xyz(0., 0., 1.),
             ..default()
         },
         AnimationTimer(Timer::from_seconds(0.1, TimerMode::Repeating)),
@@ -240,4 +285,6 @@ fn setup(
             level: 1,
         },
     ));
+
+    next_state.set(PlayerState::PlayerStart);
 }

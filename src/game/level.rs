@@ -25,6 +25,12 @@ fn setup(
     asset_server: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
 ) {
+    draw_ground();
+    draw_walls();
+    draw_door();
+}
+
+fn draw_ground() {
     let block_width = 32.;
     let block_height = 32.;
     let block_cols = 8;
@@ -45,7 +51,7 @@ fn setup(
 
     //commands.spawn(Camera2dBundle::default());
     for index in 0..total_tiles {
-        let texture_handle = asset_server.load("level/tx_tileset_grass.png");
+        let texture_handle = asset_server.load("sprites/level/tx_tileset_grass.png");
 
         let texture_atlas = TextureAtlas::from_grid(
             texture_handle,
@@ -88,3 +94,7 @@ fn setup(
         }
     }
 }
+
+fn draw_walls() {}
+
+fn draw_door() {}
