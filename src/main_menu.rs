@@ -40,10 +40,10 @@ pub struct SelectCharacterUI;
 pub struct CharacterContainerUI;
 
 #[derive(Component)]
-struct MyMusic;
+pub struct MyMusic;
 
 fn spawn_main_menu_ui(mut commands: Commands, assets: Res<AssetServer>) {
-    let font = assets.load("fonts/spectral/spectral_medium.ttf");
+    let font = assets.load("fonts/spectral/spectral_bold.ttf");
 
     let menu_parent = (
         NodeBundle {
@@ -235,9 +235,9 @@ fn despawn_main_menu_ui(
     for ui in &ui_query {
         commands.entity(ui).despawn_recursive();
     }
-    for music in &music_query {
-        commands.entity(music).despawn_recursive();
-    }
+    // for music in &music_query {
+    //     commands.entity(music).despawn_recursive();
+    // }
     // for exit in &eb_query {
     //     commands.entity(exit).despawn_recursive();
     // }

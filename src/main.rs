@@ -6,14 +6,16 @@ use bevy::prelude::*;
 use bevy::{input::common_conditions::input_toggle_active, time::Stopwatch};
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use corridor::CorridorPlugin;
+use game_won::GameWonPlugin;
 use main_menu::MainMenuPlugin;
 use util_fade::FadePlugin;
 
+mod character_select;
 mod corridor;
 mod util_fade;
 // mod game;
 // mod game_over;
-// mod game_won;
+mod game_won;
 mod main_menu;
 
 const WIDTH: f32 = 1600.0;
@@ -23,9 +25,9 @@ const HEIGHT: f32 = 900.0;
 pub enum GameState {
     #[default]
     MainMenu,
+    CharacterSelect,
     Corridor,
     Gameplay,
-    StartingGameplay,
     LevelUp,
     GameOver,
     GameWon,
@@ -52,7 +54,9 @@ fn main() {
         .add_plugins((
             FadePlugin,
             MainMenuPlugin,
-            CorridorPlugin, /*GamePlugin, GameOver, GameWon*/
+            CorridorPlugin,
+            GameWonPlugin,
+            /*GamePlugin, GameOver, GameWon*/
         ))
         .add_plugins(
             WorldInspectorPlugin::default().run_if(input_toggle_active(false, KeyCode::Escape)),

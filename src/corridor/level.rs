@@ -302,8 +302,8 @@ fn draw_side_walls(
 
         let texture_atlas_handle = texture_atlases.add(texture_atlas);
 
-        commands.spawn(
-            (SpriteSheetBundle {
+        commands.spawn((
+            SpriteSheetBundle {
                 texture_atlas: texture_atlas_handle,
                 sprite: TextureAtlasSprite {
                     index: animation_indices.last,
@@ -316,8 +316,9 @@ fn draw_side_walls(
                     ..default()
                 },
                 ..default()
-            }),
-        );
+            },
+            Wall {},
+        ));
 
         rolling_y += block_height;
     }

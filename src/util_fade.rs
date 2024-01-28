@@ -57,7 +57,7 @@ fn fade_to_black(
     time: Res<Time>,
     mut next_state: ResMut<NextState<FadeState>>,
 ) {
-    println!("Update fadetoblack");
+    // println!("Update fadetoblack");
     for (mut fadeout, mut color) in &mut query.iter_mut() {
         fadeout.in_timer.tick(time.delta());
 
@@ -77,7 +77,7 @@ fn fade_to_game(
     time: Res<Time>,
     mut next_state: ResMut<NextState<FadeState>>,
 ) {
-    println!("Update fadetogame");
+    // println!("Update fadetogame");
     for (mut fadeout, mut color) in &mut query.iter_mut() {
         fadeout.out_timer.tick(time.delta());
 

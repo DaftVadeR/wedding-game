@@ -12,8 +12,11 @@ impl Plugin for GameplayPlugin {
         app.add_plugins(GameUiPlugin)
             // .add_plugins(LevelPlugin)
             // .add_plugins(PlayerPlugin)
-            .add_systems(OnEnter(GameState::StartingGameplay), spawn_game_stuff)
-            .add_systems(OnExit(GameState::StartingGameplay), despawn_game_stuff);
+            .add_systems(
+                OnEnter(GameState::Gameplay),
+                (reset_camera, spawn_game_stuff),
+            )
+            .add_systems(OnExit(GameState::Gameplay), despawn_game_stuff);
     }
 }
 
@@ -35,3 +38,14 @@ fn despawn_game_stuff(mut commands: Commands, asset_server: Res<AssetServer>) {}
 
 #[derive(Component)]
 pub struct GameLevel;
+
+pub fn reset_camera(
+    // query: Query<(&Transform) /*(With<Player>)*/>,
+    mut camera_query: Query<&mut Transform, With<Camera> /*, Without<Player>*/>,
+) {
+    // let player_transform = query.single();
+    let mut camera_transform = camera_query.single_mut();
+
+    //
+    camera_transform.translation = Vec3::new(0., 0., 0.);
+}
