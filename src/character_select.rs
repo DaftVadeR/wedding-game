@@ -43,6 +43,15 @@ impl Plugin for CharacterSelectPlugin {
 pub struct SelectMenuUI {}
 
 #[derive(Debug, Component)]
+pub struct CharacterPic {}
+
+#[derive(Debug, Component)]
+pub struct CharacterTitle {}
+
+#[derive(Debug, Component)]
+pub struct CharacterDesc {}
+
+#[derive(Debug, Component)]
 pub struct CharacterBlock {
     name: String,
     pic_sprite: Handle<TextureAtlas>,
@@ -62,16 +71,16 @@ fn spawn_select_scene(
 
     let ailsa = CharacterBlock {
         name: "Ailsa".to_string(),
-        desc: "A bard who uses magic and a guitar, or something, to catch her foes unprepared!"
+        desc: "A bard who uses magic and a guitar for her instrument of choice, the most deadly of weapon combinations! The guitar is used to make sure they're dead afterwards - she doesn't actually need it for the magic part..."
             .to_string(),
-        pic_sprite: assets.load("sprites/player/ailsa.png"),
+        pic_sprite: assets.load("sprites/player/ailsa-move.png"),
         selected_character_state: SelectedCharacterState::Ailsa,
     };
 
     let lisa = CharacterBlock {
         name: "Lisa".to_string(),
-        desc: "A cleric who smites those not worthy of the grace of... Elvis!".to_string(),
-        pic_sprite: assets.load("sprites/player/lisa.png"),
+        desc: "A friendly cleric who smites those not worthy of the grace of... Elvis! A disarming smile and calm demeanor belie the terrifying badass within.".to_string(),
+        pic_sprite: assets.load("sprites/player/lisa-move.png"),
         selected_character_state: SelectedCharacterState::Ailsa,
     };
 
@@ -86,49 +95,117 @@ fn spawn_select_scene(
                     top: Val::Percent(45.0),
                     bottom: Val::Auto,
                 },*/
-                left: Val::Px(0.0),
-                top: Val::Px(0.0),
+                // left: Val::Px(0.0),
+                // top: Val::Px(0.0),
                 position_type: PositionType::Absolute,
-                flex_direction: FlexDirection::Column,
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
+                flex_direction: FlexDirection::Row,
+                // align_items: AlignItems::Center,
+                // justify_content: JustifyContent::Center,
                 ..default()
             },
-            background_color: Color::DARK_GRAY.into(),
+            background_color: Color::INDIGO.into(),
             ..default()
         },
         SelectMenuUI {},
     );
 
-    let character_box = get_character(SelectedCharacterState::Ailsa);
+    let ailsa_box = get_character(ailsa);
+    let lisa_box = get_character(lisa);
+
+    commands.spawn(menu_parent).with_children(|commands| {
+        commands.spawn(ailsa_box).with_children(|commands| {
+            // commands.spawn(start_button_text);
+        });
+        commands.spawn(lisa_box).with_children(|commands| {
+            // commands.spawn(exit_button_text);
+        });
+    });
 
     next_state.set(CharacterSelectState::Started);
 }
 
-fn get_character(name: String) -> impl Bundle {
+fn get_character(person: CharacterBlock) -> impl Bundle {
+    let picture = (
+        ImageBundle {
+            style: Style {
+                width: Val::Px(23.),
+                height: Val::Px(23.),
+
+                // justify_content: JustifyContent::Center,
+                // align_items: AlignItems::Center,
+                // align_self: AlignSelf::Center,
+                margin: UiRect::bottom(Val::Px(40.)),
+                ..default()
+            },
+
+            background_color: NORMAL_BUTTON.into(),
+            ..default()
+        },
+        CharacterPic {},
+    );
+
+    // let menu_title = TextBundle::from_section(
+    //     "The Valiant Duo",
+    //     TextStyle {
+    //         font: font.clone(),
+    //         font_size: 64.0,
+    //         color: Color::rgb(0.9, 0.9, 0.9),
+    //     },
+    // );
+
+    // let start_button_text = TextBundle::from_section(
+    //     "Start Game!",
+    //     TextStyle {
+    //         font: font.clone(),
+    //         font_size: 40.0,
+    //         color: Color::rgb(0.9, 0.9, 0.9),
+    //     },
+    // );
+
+    // let exit_button = (
+    //     ButtonBundle {
+    //         style: Style {
+    //             width: Val::Percent(70.0),
+    //             height: Val::Px(80.0),
+    //             justify_content: JustifyContent::Center,
+    //             align_items: AlignItems::Center,
+    //             align_self: AlignSelf::Center,
+    //             ..default()
+    //         },
+
+    //         background_color: NORMAL_BUTTON.into(),
+    //         ..default()
+    //     },
+    //     ExitButtonUI,
+    // );
+
+    // let exit_button_text = TextBundle::from_section(
+    //     "Exit",
+    //     TextStyle {
+    //         font,
+    //         font_size: 40.0,
+    //         color: Color::rgb(0.9, 0.9, 0.9),
+    //     },
+    // );
+
     (
         NodeBundle {
             style: Style {
-                width: Val::Percent(100.0),
-                height: Val::Percent(100.0),
                 /*position: UiRect {
                     left: Val::Percent(47.0),
                     right: Val::Auto,
                     top: Val::Percent(45.0),
                     bottom: Val::Auto,
                 },*/
-                left: Val::Px(0.0),
-                top: Val::Px(0.0),
-                position_type: PositionType::Absolute,
-                flex_direction: FlexDirection::Column,
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
+                flex_basis: Val::Percent(50.),
+                padding: UiRect::all(Val::Px(10.)),
                 ..default()
             },
             background_color: Color::DARK_GRAY.into(),
             ..default()
         },
-        SelectMenuUI {},
+        person,
+        picture,
     )
 }
 

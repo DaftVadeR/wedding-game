@@ -1,6 +1,7 @@
 use bevy::app::{AppExit, Plugin};
 use bevy::audio::{PlaybackMode, Volume, VolumeLevel};
 use bevy::prelude::*;
+use bevy_inspector_egui::egui::Rgba;
 
 use crate::util_fade::FadeState;
 use crate::GameState;
@@ -42,8 +43,20 @@ pub struct CharacterContainerUI;
 #[derive(Component)]
 pub struct MyMusic;
 
+#[derive(Component)]
+pub struct FlowerImageContainer;
+
+#[derive(Component)]
+pub struct FlowerImage;
+
+const NORMAL_BUTTON_COLOR: Color = Color::rgb(0.412, 0.502, 0.62);
+const HOVERED_BUTTON_COLOR: Color = Color::rgb(0.298, 0.361, 0.529);
+const PRESSED_BUTTON_COLOR: Color = Color::rgb(0.267, 0.247, 0.482);
+const BORDER_COLOR: Color = Color::rgb(0.828, 0.606, 0.161);
+const BACKGROUND_COLOR: Color = Color::rgb(0.16, 0.09, 0.231);
+
 fn spawn_main_menu_ui(mut commands: Commands, assets: Res<AssetServer>) {
-    let font = assets.load("fonts/spectral/spectral_bold.ttf");
+    let font = assets.load("fonts/spectral/spectral_medium.ttf");
 
     let menu_parent = (
         NodeBundle {
@@ -64,10 +77,51 @@ fn spawn_main_menu_ui(mut commands: Commands, assets: Res<AssetServer>) {
                 justify_content: JustifyContent::Center,
                 ..default()
             },
-            background_color: Color::DARK_GRAY.into(),
+            background_color: BACKGROUND_COLOR.into(),
             ..default()
         },
         MainMenuUI,
+    );
+
+    let image_top_container = (
+        NodeBundle {
+            style: Style {
+                width: Val::Percent(100.0),
+                height: Val::Percent(100.0),
+                /*position: UiRect {
+                    left: Val::Percent(47.0),
+                    right: Val::Auto,
+                    top: Val::Percent(45.0),
+                    bottom: Val::Auto,
+                },*/
+                left: Val::Px(0.0),
+                top: Val::Px(0.0),
+                position_type: PositionType::Absolute,
+                flex_direction: FlexDirection::Column,
+                align_items: AlignItems::Center,
+                // justify_content: JustifyContent::Center,
+                ..default()
+            },
+            // background_color: BACKGROUND_COLOR.into(),
+            ..default()
+        },
+        FlowerImageContainer {},
+    );
+
+    let image_top = (
+        ImageBundle {
+            style: Style {
+                width: Val::Px(532.),
+                height: Val::Px(190.),
+                // justify_content: JustifyContent::Center,
+                // align_items: AlignItems::Center,
+                // align_self: AlignSelf::Center,
+                ..default()
+            },
+            image: UiImage::new(assets.load("sprites/ui/1.png")),
+            ..default()
+        },
+        // FlowerImage {},
     );
 
     let start_button = (
@@ -80,10 +134,12 @@ fn spawn_main_menu_ui(mut commands: Commands, assets: Res<AssetServer>) {
                 align_items: AlignItems::Center,
                 align_self: AlignSelf::Center,
                 margin: UiRect::bottom(Val::Px(40.)),
+                border: UiRect::all(Val::Px(2.)),
                 ..default()
             },
 
-            background_color: NORMAL_BUTTON.into(),
+            background_color: NORMAL_BUTTON_COLOR.into(),
+            border_color: NORMAL_BUTTON_COLOR.into(),
             ..default()
         },
         StartButtonUI,
@@ -115,10 +171,12 @@ fn spawn_main_menu_ui(mut commands: Commands, assets: Res<AssetServer>) {
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
                 align_self: AlignSelf::Center,
+                border: UiRect::all(Val::Px(2.)),
                 ..default()
             },
 
-            background_color: NORMAL_BUTTON.into(),
+            background_color: NORMAL_BUTTON_COLOR.into(),
+            border_color: NORMAL_BUTTON_COLOR.into(),
             ..default()
         },
         ExitButtonUI,
@@ -134,6 +192,11 @@ fn spawn_main_menu_ui(mut commands: Commands, assets: Res<AssetServer>) {
     );
 
     commands.spawn(menu_parent).with_children(|commands| {
+        commands
+            .spawn(image_top_container)
+            .with_children(|commands| {
+                commands.spawn(image_top);
+            });
         commands.spawn(start_button).with_children(|commands| {
             commands.spawn(start_button_text);
         });
@@ -155,30 +218,29 @@ fn spawn_main_menu_ui(mut commands: Commands, assets: Res<AssetServer>) {
     ));
 }
 
-const NORMAL_BUTTON: Color = Color::CRIMSON;
-const HOVERED_BUTTON: Color = Color::PURPLE;
-const PRESSED_BUTTON: Color = Color::RED;
-
 fn start_button_system(
     mut interaction_query: Query<
-        (&Interaction, &mut BackgroundColor),
+        (&Interaction, &mut BackgroundColor, &mut BorderColor),
         (With<Button>, With<StartButtonUI>),
     >,
     mut next_game_state: ResMut<NextState<GameState>>,
     mut next_fade_state: ResMut<NextState<FadeState>>,
 ) {
-    for (interaction, mut color) in &mut interaction_query {
+    for (interaction, mut color, mut border_color) in &mut interaction_query {
         match *interaction {
             Interaction::Pressed => {
-                *color = PRESSED_BUTTON.into();
+                *color = PRESSED_BUTTON_COLOR.into();
+                *border_color = HOVERED_BUTTON_COLOR.into();
                 next_fade_state.set(FadeState::FadeToGame);
-                next_game_state.set(GameState::Corridor);
+                next_game_state.set(GameState::CharacterSelect);
             }
             Interaction::Hovered => {
-                *color = HOVERED_BUTTON.into();
+                *color = HOVERED_BUTTON_COLOR.into();
+                *border_color = BORDER_COLOR.into();
             }
             Interaction::None => {
-                *color = NORMAL_BUTTON.into();
+                *color = NORMAL_BUTTON_COLOR.into();
+                *border_color = NORMAL_BUTTON_COLOR.into();
             }
         }
     }
@@ -187,22 +249,25 @@ fn start_button_system(
 fn exit_button_system(
     mut exit: EventWriter<AppExit>,
     mut interaction_query: Query<
-        (&Interaction, &mut BackgroundColor),
+        (&Interaction, &mut BackgroundColor, &mut BorderColor),
         (With<Button>, With<ExitButtonUI>),
     >,
     mut next_state: ResMut<NextState<GameState>>,
 ) {
-    for (interaction, mut color) in &mut interaction_query {
+    for (interaction, mut color, mut border_color) in &mut interaction_query {
         match *interaction {
             Interaction::Pressed => {
-                *color = PRESSED_BUTTON.into();
+                *color = PRESSED_BUTTON_COLOR.into();
+                *border_color = HOVERED_BUTTON_COLOR.into();
                 exit.send(AppExit);
             }
             Interaction::Hovered => {
-                *color = HOVERED_BUTTON.into();
+                *color = HOVERED_BUTTON_COLOR.into();
+                *border_color = BORDER_COLOR.into();
             }
             Interaction::None => {
-                *color = NORMAL_BUTTON.into();
+                *color = NORMAL_BUTTON_COLOR.into();
+                *border_color = NORMAL_BUTTON_COLOR.into();
             }
         }
     }
