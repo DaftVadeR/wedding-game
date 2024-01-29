@@ -54,11 +54,11 @@ fn main() {
         .add_state::<GameState>()
         .add_systems(Startup, setup)
         .add_plugins((
-            // FadePlugin,
+            FadePlugin,
             MainMenuPlugin,
             CharacterSelectPlugin,
-            // CorridorPlugin,
-            // GameWonPlugin,
+            CorridorPlugin,
+            GameWonPlugin,
             /*GamePlugin, GameOver, GameWon*/
         ))
         .add_plugins(

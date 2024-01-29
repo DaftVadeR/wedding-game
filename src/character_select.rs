@@ -5,6 +5,7 @@ use crate::util_fade::FadeState;
 use crate::GameState;
 use bevy::app::{AppExit, Plugin};
 use bevy::prelude::*;
+use bevy::render::texture;
 use bevy::sprite::Anchor;
 use bevy::ui::FocusPolicy;
 use bevy::utils::HashMap;
@@ -84,6 +85,9 @@ pub fn get_lisa_character() -> CharacterBlock {
         selected_character_state: SelectedCharacterState::Ailsa,
     }
 }
+
+pub const PLAYER_WIDTH: f32 = 23.;
+pub const PLAYER_HEIGHT: f32 = 36.;
 
 fn get_character_blocks() -> HashMap<SelectedCharacterState, CharacterBlock> {
     let mut characters = HashMap::new();
@@ -190,6 +194,26 @@ fn get_character_container() -> impl Bundle {
     },)
 }
 
+pub fn get_character_sprite(
+    character: &CharacterBlock,
+    texture_atlases: &mut ResMut<Assets<TextureAtlas>>,
+    assets: &Res<AssetServer>,
+) -> Handle<TextureAtlas> {
+    let texture_handle = assets.load(character.pic_sprite);
+    let texture_atlas = TextureAtlas::from_grid(
+        texture_handle,
+        Vec2::new(PLAYER_WIDTH, PLAYER_HEIGHT),
+        9,
+        10,
+        None,
+        None,
+    );
+
+    let texture_atlas_handle = texture_atlases.add(texture_atlas);
+
+    texture_atlas_handle
+}
+
 fn get_character_inner_container(character: CharacterBlock) -> impl Bundle {
     (
         ButtonBundle {
@@ -218,20 +242,7 @@ fn get_character_pic(
     texture_atlases: &mut ResMut<Assets<TextureAtlas>>,
     assets: &Res<AssetServer>,
 ) -> impl Bundle {
-    let block_width = 23.;
-    let block_height = 36.;
-
-    let texture_handle = assets.load(character.pic_sprite);
-    let texture_atlas = TextureAtlas::from_grid(
-        texture_handle,
-        Vec2::new(block_width, block_height),
-        9,
-        9,
-        Some(Vec2::new(1., 1.)),
-        None, // Some(Vec2::new(1., 1.)),
-    );
-
-    let texture_atlas_handle = texture_atlases.add(texture_atlas);
+    let texture_atlas_handle = get_character_sprite(character, texture_atlases, assets);
 
     (
         AtlasImageBundle {
@@ -327,7 +338,7 @@ fn character_select_system(
     music_query: Query<Entity, With<MyMusic>>,
     mut next_game_state: ResMut<NextState<GameState>>,
     mut next_character_state: ResMut<NextState<SelectedCharacterState>>,
-    // mut next_fade_state: ResMut<NextState<FadeState>>,
+    mut next_fade_state: ResMut<NextState<FadeState>>,
 ) {
     for (interaction, mut color, mut border_color, character) in &mut block_click_query {
         // println!(
@@ -345,7 +356,7 @@ fn character_select_system(
                 // *color = PRESSED_BUTTON_COLOR.into();
 
                 next_character_state.set(character.selected_character_state.clone());
-                // next_fade_state.set(FadeState::FadeToGame);
+                next_fade_state.set(FadeState::FadeToGame);
                 next_game_state.set(GameState::Corridor);
 
                 for music in &music_query {

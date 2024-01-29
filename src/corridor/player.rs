@@ -1,7 +1,8 @@
 use bevy::prelude::*;
 
 use crate::character_select::{
-    get_ailsa_character, get_lisa_character, CharacterBlock, SelectedCharacterState,
+    get_ailsa_character, get_character_sprite, get_lisa_character, CharacterBlock,
+    SelectedCharacterState, PLAYER_HEIGHT, PLAYER_WIDTH,
 };
 use crate::corridor::level::{MAP_HEIGHT, MAP_VERTICAL_OFFSET};
 use crate::corridor::sprite::{
@@ -20,9 +21,7 @@ pub enum CorridorPlayerState {
     Started,
 }
 
-const PLAYER_SPEED_DEFAULT: f32 = 100.;
-const PLAYER_WIDTH: f32 = 23.;
-const PLAYER_HEIGHT: f32 = 23.;
+pub const PLAYER_SPEED_DEFAULT: f32 = 100.;
 
 pub struct PlayerPlugin;
 
@@ -246,11 +245,19 @@ fn animate_sprite(
         let indices = get_indices_for_movable(movable, animateable);
         timer.tick(time.delta());
         if timer.just_finished() {
-            sprite.index = if sprite.index >= indices.last {
-                indices.first
+            if movable.is_moving {
+                sprite.index = if sprite.index >= indices.last {
+                    indices.first
+                } else {
+                    sprite.index + 1
+                };
             } else {
-                sprite.index + 1
-            };
+                if sprite.index == indices.last {
+                    sprite.index = indices.first;
+                } else {
+                    sprite.index = indices.last;
+                }
+            }
         }
     }
 }
@@ -285,7 +292,7 @@ fn animate_sprite(
 
 fn setup(
     mut commands: Commands,
-    asset_server: Res<AssetServer>,
+    mut assets: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
     mut next_state: ResMut<NextState<CorridorPlayerState>>,
     state: Res<State<SelectedCharacterState>>,
@@ -305,34 +312,18 @@ fn setup(
         character = get_lisa_character();
     }
 
-    let texture_handle = asset_server.load(character.pic_sprite);
-
-    // let builder = TextureAtlasBuilder::default().initial_size(Vec2 { x: 96., y: 32. });
-    // builder.add_texture(, texture)
-
-    let texture_atlas = TextureAtlas::from_grid(
-        texture_handle,
-        Vec2::new(PLAYER_WIDTH, PLAYER_HEIGHT),
-        4,
-        4,
-        None,
-        None,
-    );
-
-    // texture_atlas.
-    // let texture_atlas_run =
-    //     TextureAtlas::from_grid(texture_handle_run, Vec2::new(16.0, 16.0), 6, 1, None, None);
-
-    let texture_atlas_handle = texture_atlases.add(texture_atlas);
-    // let texture_atlas_run_handle = texture_atlases.add(texture_atlas_run);
+    let texture_atlas_handle = get_character_sprite(&character, &mut texture_atlases, &mut assets);
 
     // Use only the subset of sprites in the sheet that make up the run animation
     let idle_animation_indices = AnimationIndices { first: 0, last: 1 };
-    let run_down_animation_indices = AnimationIndices { first: 4, last: 7 };
-    let run_horizontal_animation_indices = AnimationIndices { first: 8, last: 11 };
+    let run_down_animation_indices = AnimationIndices { first: 9, last: 17 };
+    let run_horizontal_animation_indices = AnimationIndices {
+        first: 27,
+        last: 35,
+    };
     let run_up_animation_indices = AnimationIndices {
-        first: 12,
-        last: 15,
+        first: 45,
+        last: 53,
     };
 
     // Spawn Level
