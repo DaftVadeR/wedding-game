@@ -3,8 +3,10 @@ use std::hash::Hash;
 use bevy::core_pipeline::clear_color::ClearColorConfig;
 use bevy::prelude::*;
 
+use bevy::winit::WinitSettings;
 use bevy::{input::common_conditions::input_toggle_active, time::Stopwatch};
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
+use character_select::CharacterSelectPlugin;
 use corridor::CorridorPlugin;
 use game_won::GameWonPlugin;
 use main_menu::MainMenuPlugin;
@@ -52,15 +54,17 @@ fn main() {
         .add_state::<GameState>()
         .add_systems(Startup, setup)
         .add_plugins((
-            FadePlugin,
+            // FadePlugin,
             MainMenuPlugin,
-            CorridorPlugin,
-            GameWonPlugin,
+            CharacterSelectPlugin,
+            // CorridorPlugin,
+            // GameWonPlugin,
             /*GamePlugin, GameOver, GameWon*/
         ))
         .add_plugins(
             WorldInspectorPlugin::default().run_if(input_toggle_active(false, KeyCode::Escape)),
         )
+        // .insert_resource(WinitSettings::desktop_app())
         .run();
 }
 

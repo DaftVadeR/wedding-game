@@ -1,8 +1,11 @@
 use bevy::prelude::*;
 
+use crate::character_select::{
+    get_ailsa_character, get_lisa_character, CharacterBlock, SelectedCharacterState,
+};
 use crate::corridor::level::{MAP_HEIGHT, MAP_VERTICAL_OFFSET};
 use crate::corridor::sprite::{
-    AnimationIndices, AnimationTimer, Direction, Movable, SpriteSheetAnimatable,
+    AnimationIndices, AnimationTimer, Direction, Movable, PlayerSpriteSheetAnimatable,
 };
 
 use crate::GameState;
@@ -18,8 +21,8 @@ pub enum CorridorPlayerState {
 }
 
 const PLAYER_SPEED_DEFAULT: f32 = 100.;
-const PLAYER_WIDTH: f32 = 16.;
-const PLAYER_HEIGHT: f32 = 16.;
+const PLAYER_WIDTH: f32 = 23.;
+const PLAYER_HEIGHT: f32 = 23.;
 
 pub struct PlayerPlugin;
 
@@ -37,8 +40,6 @@ pub struct Player;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        println!("Loading player plugin");
-
         app.add_state::<CorridorPlayerState>()
             .add_systems(OnEnter(CorridorPlayerState::Init), setup)
             .add_systems(OnExit(GameState::Corridor), unload)
@@ -120,7 +121,7 @@ pub fn player_movement(
             &mut Movable,
             &mut TextureAtlasSprite,
             &mut Transform,
-            &SpriteSheetAnimatable,
+            &PlayerSpriteSheetAnimatable,
         ),
         With<Player>,
     >,
@@ -133,7 +134,7 @@ pub fn player_movement(
         return;
     }
 
-    let (mut movable, mut sprite, mut transform, animatable) = player.single_mut();
+    let (mut movable, mut sprite, mut transform, animateable) = player.single_mut();
 
     let normal_translation = time.delta_seconds() * movable.speed;
 
@@ -201,18 +202,35 @@ pub fn player_movement(
         movable.is_moving = key_pressed;
 
         sprite.index = (if movable.is_moving {
-            &animatable.moving_anim_indices
+            get_indices_for_movable(&movable, &animateable)
         } else {
-            &animatable.idle_anim_indices
+            &animateable.idle_anim_indices
         })
         .first;
+    }
+}
+
+pub fn get_indices_for_movable<'a>(
+    movable: &'a Movable,
+    animateable: &'a PlayerSpriteSheetAnimatable,
+) -> &'a AnimationIndices {
+    if !movable.is_moving {
+        &animateable.idle_anim_indices
+    } else {
+        if movable.direction == Direction::Up {
+            &animateable.moving_up_anim_indices
+        } else if movable.direction == Direction::Down {
+            &animateable.moving_down_anim_indices
+        } else {
+            &animateable.moving_horizontal_anim_indices
+        }
     }
 }
 
 fn animate_sprite(
     time: Res<Time>,
     mut query: Query<(
-        &SpriteSheetAnimatable,
+        &PlayerSpriteSheetAnimatable,
         &mut AnimationTimer,
         &mut TextureAtlasSprite,
         &Movable,
@@ -225,15 +243,10 @@ fn animate_sprite(
     }
 
     for (animateable, mut timer, mut sprite, movable) in &mut query {
-        let indices = if !movable.is_moving {
-            &animateable.idle_anim_indices
-        } else {
-            &animateable.moving_anim_indices
-        };
-
+        let indices = get_indices_for_movable(movable, animateable);
         timer.tick(time.delta());
         if timer.just_finished() {
-            sprite.index = if sprite.index == indices.last {
+            sprite.index = if sprite.index >= indices.last {
                 indices.first
             } else {
                 sprite.index + 1
@@ -242,19 +255,57 @@ fn animate_sprite(
     }
 }
 
+// fn get_knight_sprite() {
+
+//     let texture_handle = asset_server.load("sprites/player/knight_all_anims_spritesheet.png");
+
+//     // let builder = TextureAtlasBuilder::default().initial_size(Vec2 { x: 96., y: 32. });
+//     // builder.add_texture(, texture)
+
+//     let texture_atlas = TextureAtlas::from_grid(
+//         texture_handle,
+//         Vec2::new(PLAYER_WIDTH, PLAYER_HEIGHT),
+//         6,
+//         2,
+//         None,
+//         None,
+//     );
+
+//     // texture_atlas.
+//     // let texture_atlas_run =
+//     //     TextureAtlas::from_grid(texture_handle_run, Vec2::new(16.0, 16.0), 6, 1, None, None);
+
+//     let texture_atlas_handle = texture_atlases.add(texture_atlas);
+//     // let texture_atlas_run_handle = texture_atlases.add(texture_atlas_run);
+
+//     // Use only the subset of sprites in the sheet that make up the run animation
+//     let idle_animation_indices = AnimationIndices { first: 0, last: 5 };
+//     let run_animation_indices = AnimationIndices { first: 6, last: 11 };
+// }
+
 fn setup(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
     mut next_state: ResMut<NextState<CorridorPlayerState>>,
+    state: Res<State<SelectedCharacterState>>,
     // mut meshes: ResMut<Assets<Mesh>>,
     // mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
+    println!("Spawning corridor player plugin");
     // let texture_handle = asset_server.load("player/knight_idle_spritesheet.png");
     // let texture_handle_run = asset_server.load("player/knight_run_spritesheet.png");
-    println!("Loading player spritesheet");
+    // println!("Loading player spritesheet");
 
-    let texture_handle = asset_server.load("sprites/player/knight_all_anims_spritesheet.png");
+    let character: CharacterBlock;
+
+    if state.get() == &SelectedCharacterState::Ailsa {
+        character = get_ailsa_character();
+    } else {
+        character = get_lisa_character();
+    }
+
+    let texture_handle = asset_server.load(character.pic_sprite);
 
     // let builder = TextureAtlasBuilder::default().initial_size(Vec2 { x: 96., y: 32. });
     // builder.add_texture(, texture)
@@ -262,8 +313,8 @@ fn setup(
     let texture_atlas = TextureAtlas::from_grid(
         texture_handle,
         Vec2::new(PLAYER_WIDTH, PLAYER_HEIGHT),
-        6,
-        2,
+        4,
+        4,
         None,
         None,
     );
@@ -276,8 +327,13 @@ fn setup(
     // let texture_atlas_run_handle = texture_atlases.add(texture_atlas_run);
 
     // Use only the subset of sprites in the sheet that make up the run animation
-    let idle_animation_indices = AnimationIndices { first: 0, last: 5 };
-    let run_animation_indices = AnimationIndices { first: 6, last: 11 };
+    let idle_animation_indices = AnimationIndices { first: 0, last: 1 };
+    let run_down_animation_indices = AnimationIndices { first: 4, last: 7 };
+    let run_horizontal_animation_indices = AnimationIndices { first: 8, last: 11 };
+    let run_up_animation_indices = AnimationIndices {
+        first: 12,
+        last: 15,
+    };
 
     // Spawn Level
     // let map_bottom_y_pos = -1. * (MAP_HEIGHT / 2.) + MAP_VERTICAL_OFFSET;
@@ -289,11 +345,13 @@ fn setup(
             transform: Transform::from_xyz(0., 0., 1.),
             ..default()
         },
-        AnimationTimer(Timer::from_seconds(0.1, TimerMode::Repeating)),
+        AnimationTimer(Timer::from_seconds(0.3, TimerMode::Repeating)),
         Player,
-        SpriteSheetAnimatable {
+        PlayerSpriteSheetAnimatable {
             idle_anim_indices: idle_animation_indices,
-            moving_anim_indices: run_animation_indices,
+            moving_horizontal_anim_indices: run_horizontal_animation_indices,
+            moving_up_anim_indices: run_up_animation_indices,
+            moving_down_anim_indices: run_down_animation_indices,
         },
         Movable {
             speed: PLAYER_SPEED_DEFAULT,

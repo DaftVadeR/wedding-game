@@ -26,7 +26,7 @@ impl Plugin for MainMenuPlugin {
 }
 
 #[derive(Component)]
-pub struct MainMenuUI;
+pub struct MainMenuUi;
 
 #[derive(Component)]
 pub struct StartButtonUI;
@@ -49,11 +49,14 @@ pub struct FlowerImageContainer;
 #[derive(Component)]
 pub struct FlowerImage;
 
-const NORMAL_BUTTON_COLOR: Color = Color::rgb(0.412, 0.502, 0.62);
-const HOVERED_BUTTON_COLOR: Color = Color::rgb(0.298, 0.361, 0.529);
-const PRESSED_BUTTON_COLOR: Color = Color::rgb(0.267, 0.247, 0.482);
-const BORDER_COLOR: Color = Color::rgb(0.828, 0.606, 0.161);
-const BACKGROUND_COLOR: Color = Color::rgb(0.16, 0.09, 0.231);
+pub const DARK_PURPLE: Color = Color::rgb(0.165, 0.09, 0.231);
+pub const PURPLE: Color = Color::rgb(0.247, 0.173, 0.373);
+pub const PURPLISH: Color = Color::rgb(0.298, 0.361, 0.529);
+pub const BLUE: Color = Color::rgb(0.267, 0.247, 0.482);
+pub const LIGHT_BLUE: Color = Color::rgb(0.412, 0.502, 0.62);
+pub const LIGHT_TEAL: Color = Color::rgb(0.584, 0.773, 0.675);
+
+pub const BORDER_COLOR: Color = Color::rgb(0.828, 0.606, 0.161);
 
 fn spawn_main_menu_ui(mut commands: Commands, assets: Res<AssetServer>) {
     let font = assets.load("fonts/spectral/spectral_medium.ttf");
@@ -77,10 +80,10 @@ fn spawn_main_menu_ui(mut commands: Commands, assets: Res<AssetServer>) {
                 justify_content: JustifyContent::Center,
                 ..default()
             },
-            background_color: BACKGROUND_COLOR.into(),
+            background_color: DARK_PURPLE.into(),
             ..default()
         },
-        MainMenuUI,
+        MainMenuUi,
     );
 
     let image_top_container = (
@@ -138,8 +141,8 @@ fn spawn_main_menu_ui(mut commands: Commands, assets: Res<AssetServer>) {
                 ..default()
             },
 
-            background_color: NORMAL_BUTTON_COLOR.into(),
-            border_color: NORMAL_BUTTON_COLOR.into(),
+            background_color: BLUE.into(),
+            border_color: BLUE.into(),
             ..default()
         },
         StartButtonUI,
@@ -175,8 +178,8 @@ fn spawn_main_menu_ui(mut commands: Commands, assets: Res<AssetServer>) {
                 ..default()
             },
 
-            background_color: NORMAL_BUTTON_COLOR.into(),
-            border_color: NORMAL_BUTTON_COLOR.into(),
+            background_color: BLUE.into(),
+            border_color: BLUE.into(),
             ..default()
         },
         ExitButtonUI,
@@ -191,20 +194,6 @@ fn spawn_main_menu_ui(mut commands: Commands, assets: Res<AssetServer>) {
         },
     );
 
-    commands.spawn(menu_parent).with_children(|commands| {
-        commands
-            .spawn(image_top_container)
-            .with_children(|commands| {
-                commands.spawn(image_top);
-            });
-        commands.spawn(start_button).with_children(|commands| {
-            commands.spawn(start_button_text);
-        });
-        commands.spawn(exit_button).with_children(|commands| {
-            commands.spawn(exit_button_text);
-        });
-    });
-
     commands.spawn((
         AudioBundle {
             source: assets.load("music/loopnice2.ogg"),
@@ -216,6 +205,21 @@ fn spawn_main_menu_ui(mut commands: Commands, assets: Res<AssetServer>) {
         },
         MyMusic,
     ));
+
+    commands.spawn(menu_parent).with_children(|commands| {
+        commands
+            .spawn(image_top_container)
+            .with_children(|commands| {
+                commands.spawn(image_top);
+            });
+
+        commands.spawn(start_button).with_children(|commands| {
+            commands.spawn(start_button_text);
+        });
+        commands.spawn(exit_button).with_children(|commands| {
+            commands.spawn(exit_button_text);
+        });
+    });
 }
 
 fn start_button_system(
@@ -224,23 +228,23 @@ fn start_button_system(
         (With<Button>, With<StartButtonUI>),
     >,
     mut next_game_state: ResMut<NextState<GameState>>,
-    mut next_fade_state: ResMut<NextState<FadeState>>,
+    // mut next_fade_state: ResMut<NextState<FadeState>>,
 ) {
     for (interaction, mut color, mut border_color) in &mut interaction_query {
         match *interaction {
             Interaction::Pressed => {
-                *color = PRESSED_BUTTON_COLOR.into();
-                *border_color = HOVERED_BUTTON_COLOR.into();
-                next_fade_state.set(FadeState::FadeToGame);
+                *color = LIGHT_BLUE.into();
+                *border_color = LIGHT_BLUE.into();
+                // next_fade_state.set(FadeState::FadeToGame);
                 next_game_state.set(GameState::CharacterSelect);
             }
             Interaction::Hovered => {
-                *color = HOVERED_BUTTON_COLOR.into();
-                *border_color = BORDER_COLOR.into();
+                *color = LIGHT_BLUE.into();
+                *border_color = LIGHT_TEAL.into();
             }
             Interaction::None => {
-                *color = NORMAL_BUTTON_COLOR.into();
-                *border_color = NORMAL_BUTTON_COLOR.into();
+                *color = BLUE.into();
+                *border_color = BLUE.into();
             }
         }
     }
@@ -257,17 +261,17 @@ fn exit_button_system(
     for (interaction, mut color, mut border_color) in &mut interaction_query {
         match *interaction {
             Interaction::Pressed => {
-                *color = PRESSED_BUTTON_COLOR.into();
-                *border_color = HOVERED_BUTTON_COLOR.into();
+                *color = LIGHT_BLUE.into();
+                *border_color = LIGHT_TEAL.into();
                 exit.send(AppExit);
             }
             Interaction::Hovered => {
-                *color = HOVERED_BUTTON_COLOR.into();
-                *border_color = BORDER_COLOR.into();
+                *color = LIGHT_BLUE.into();
+                *border_color = LIGHT_TEAL.into();
             }
             Interaction::None => {
-                *color = NORMAL_BUTTON_COLOR.into();
-                *border_color = NORMAL_BUTTON_COLOR.into();
+                *color = BLUE.into();
+                *border_color = BLUE.into();
             }
         }
     }
@@ -292,7 +296,7 @@ fn play_music(music_controller: Query<&AudioSink, With<MyMusic>>, time: Res<Time
 
 fn despawn_main_menu_ui(
     mut commands: Commands,
-    ui_query: Query<Entity, With<MainMenuUI>>,
+    ui_query: Query<Entity, With<MainMenuUi>>,
     music_query: Query<Entity, With<MyMusic>>,
     sb_query: Query<Entity, With<StartButtonUI>>,
     eb_query: Query<Entity, With<ExitButtonUI>>,

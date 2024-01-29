@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Direction {
     Left,
     Right,
@@ -17,6 +17,14 @@ pub struct Movable {
     pub speed: f32,
     pub direction: Direction,
     pub is_moving: bool,
+}
+
+#[derive(Component, Debug)]
+pub struct PlayerSpriteSheetAnimatable {
+    pub idle_anim_indices: AnimationIndices,
+    pub moving_horizontal_anim_indices: AnimationIndices,
+    pub moving_up_anim_indices: AnimationIndices,
+    pub moving_down_anim_indices: AnimationIndices,
 }
 
 #[derive(Component, Debug)]

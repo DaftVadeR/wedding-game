@@ -38,6 +38,7 @@ fn init_fadeout(mut commands: Commands) {
                 height: Val::Percent(100.0),
                 ..default()
             },
+            visibility: Visibility::Hidden,
             background_color: BackgroundColor(Color::rgba(0., 0., 0., 0.0)),
             z_index: ZIndex::Global(9999),
             ..default()
@@ -53,40 +54,48 @@ fn init_fadeout(mut commands: Commands) {
 }
 
 fn fade_to_black(
-    mut query: Query<(&mut Fadeout, &mut BackgroundColor)>,
+    mut query: Query<(&mut Fadeout, &mut Visibility, &mut BackgroundColor)>,
     time: Res<Time>,
     mut next_state: ResMut<NextState<FadeState>>,
 ) {
     // println!("Update fadetoblack");
-    for (mut fadeout, mut color) in &mut query.iter_mut() {
+    for (mut fadeout, mut visibility, mut color) in &mut query.iter_mut() {
         fadeout.in_timer.tick(time.delta());
 
         if fadeout.in_timer.just_finished() {
             println!("Finished fadeout in");
-            color.0.set_a(1.);
             fadeout.in_timer.reset();
+            color.0.set_a(1.);
+            // *visibility = Visibility::Hidden;
             next_state.set(FadeState::FadeToGame);
         } else {
+            if *visibility == Visibility::Hidden {
+                *visibility = Visibility::Visible;
+            }
             color.0.set_a(fadeout.in_timer.percent());
         }
     }
 }
 
 fn fade_to_game(
-    mut query: Query<(&mut Fadeout, &mut BackgroundColor)>,
+    mut query: Query<(&mut Fadeout, &mut Visibility, &mut BackgroundColor)>,
     time: Res<Time>,
     mut next_state: ResMut<NextState<FadeState>>,
 ) {
     // println!("Update fadetogame");
-    for (mut fadeout, mut color) in &mut query.iter_mut() {
+    for (mut fadeout, mut visibility, mut color) in &mut query.iter_mut() {
         fadeout.out_timer.tick(time.delta());
 
         if fadeout.out_timer.just_finished() {
             println!("Finished fadeout out");
-            color.0.set_a(0.);
             fadeout.out_timer.reset();
+            color.0.set_a(0.);
+            *visibility = Visibility::Hidden;
             next_state.set(FadeState::Gone);
         } else {
+            if *visibility == Visibility::Hidden {
+                *visibility = Visibility::Visible;
+            }
             color.0.set_a(1. - fadeout.out_timer.percent());
         }
     }
