@@ -72,7 +72,7 @@ pub fn get_ailsa_character() -> CharacterBlock {
         name: "Ailsa".to_string(),
         desc: "A bard who uses magic and a guitar for her instrument of choice, the most deadly of weapon combinations! The guitar is used to make sure they're dead afterwards - she doesn't actually need it for the magic part..."
             .to_string(),
-        pic_sprite: "sprites/player/lisa-old.png",
+        pic_sprite: "sprites/player/ailsa.png",
         selected_character_state: SelectedCharacterState::Ailsa,
     }
 }
@@ -81,7 +81,7 @@ pub fn get_lisa_character() -> CharacterBlock {
     CharacterBlock {
         name: "Lisa".to_string(),
         desc: "A friendly cleric who smites those not worthy of the grace of Paul Simon's greatness! A disarming smile and calm demeanor belie the terrifying badass within.".to_string(),
-        pic_sprite: "sprites/player/lisa-old.png",
+        pic_sprite: "sprites/player/lisa.png",
         selected_character_state: SelectedCharacterState::Ailsa,
     }
 }
@@ -204,7 +204,7 @@ pub fn get_character_sprite(
         texture_handle,
         Vec2::new(PLAYER_WIDTH, PLAYER_HEIGHT),
         9,
-        10,
+        6,
         None,
         None,
     );

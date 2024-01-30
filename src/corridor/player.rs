@@ -141,6 +141,8 @@ pub fn player_movement(
 
     let mut key_pressed = false;
 
+    let old_direction = movable.direction;
+
     // Top and bottom with checks for diagonal.
     if input.pressed(KeyCode::W) {
         if input.pressed(KeyCode::D) {
@@ -196,32 +198,35 @@ pub fn player_movement(
         (MAP_HEIGHT - MAP_VERTICAL_OFFSET - PLAYER_HEIGHT / 2.),
     );
 
-    // If it changed
-    if movable.is_moving != key_pressed {
-        movable.is_moving = key_pressed;
+    movable.is_moving = key_pressed;
 
-        sprite.index = (if movable.is_moving {
-            get_indices_for_movable(&movable, &animateable)
-        } else {
-            &animateable.idle_anim_indices
-        })
-        .first;
+    // If it changed
+    if movable.direction != old_direction {
+        movable.current_animation_indices =
+            get_indices_for_movable(&movable, &animateable, &sprite);
+
+        sprite.index = movable.current_animation_indices.first;
     }
 }
 
-pub fn get_indices_for_movable<'a>(
-    movable: &'a Movable,
-    animateable: &'a PlayerSpriteSheetAnimatable,
-) -> &'a AnimationIndices {
+pub fn get_indices_for_movable(
+    movable: &Movable,
+    animateable: &PlayerSpriteSheetAnimatable,
+    sprite: &TextureAtlasSprite,
+) -> AnimationIndices {
     if !movable.is_moving {
-        &animateable.idle_anim_indices
+        animateable.idle_anim_indices.clone()
     } else {
-        if movable.direction == Direction::Up {
-            &animateable.moving_up_anim_indices
+        if vec![Direction::UpLeft, Direction::UpRight].contains(&movable.direction) {
+            animateable.moving_up_horiz_anim_indices.clone()
+        } else if vec![Direction::DownLeft, Direction::DownRight].contains(&movable.direction) {
+            animateable.moving_down_horiz_anim_indices.clone()
+        } else if movable.direction == Direction::Up {
+            animateable.moving_up_anim_indices.clone()
         } else if movable.direction == Direction::Down {
-            &animateable.moving_down_anim_indices
+            animateable.moving_down_anim_indices.clone()
         } else {
-            &animateable.moving_horizontal_anim_indices
+            animateable.moving_horizontal_anim_indices.clone()
         }
     }
 }
@@ -242,22 +247,24 @@ fn animate_sprite(
     }
 
     for (animateable, mut timer, mut sprite, movable) in &mut query {
-        let indices = get_indices_for_movable(movable, animateable);
+        let indices = get_indices_for_movable(movable, animateable, &sprite);
+
         timer.tick(time.delta());
         if timer.just_finished() {
-            if movable.is_moving {
-                sprite.index = if sprite.index >= indices.last {
-                    indices.first
-                } else {
-                    sprite.index + 1
-                };
+            // if movable.is_moving {
+            sprite.index = if sprite.index >= indices.last {
+                indices.first
             } else {
-                if sprite.index == indices.last {
-                    sprite.index = indices.first;
-                } else {
-                    sprite.index = indices.last;
-                }
+                sprite.index + 1
             }
+
+            // } else {
+            //     sprite.index = if sprite.index == indices.last {
+            //         indices.first
+            //     } else {
+            //         indices.last
+            //     }
+            // }
         }
     }
 }
@@ -326,6 +333,15 @@ fn setup(
         last: 53,
     };
 
+    let run_up_horiz_animation_indices = AnimationIndices {
+        first: 36,
+        last: 44,
+    };
+    let run_down_horiz_animation_indices = AnimationIndices {
+        first: 18,
+        last: 26,
+    };
+
     // Spawn Level
     // let map_bottom_y_pos = -1. * (MAP_HEIGHT / 2.) + MAP_VERTICAL_OFFSET;
 
@@ -343,11 +359,14 @@ fn setup(
             moving_horizontal_anim_indices: run_horizontal_animation_indices,
             moving_up_anim_indices: run_up_animation_indices,
             moving_down_anim_indices: run_down_animation_indices,
+            moving_up_horiz_anim_indices: run_up_horiz_animation_indices,
+            moving_down_horiz_anim_indices: run_down_horiz_animation_indices,
         },
         Movable {
             speed: PLAYER_SPEED_DEFAULT,
-            direction: Direction::Right,
+            direction: Direction::Down,
             is_moving: false,
+            current_animation_indices: idle_animation_indices.clone(),
         },
     ));
 
