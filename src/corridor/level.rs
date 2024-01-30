@@ -69,7 +69,7 @@ fn update(
     let (mut texture_atlas_sprite, door_transform, mut door) = door_query.single_mut();
     let (player_transform) = player_query.single();
 
-    let detection_area = 16.;
+    let detection_area = 32.;
 
     let is_near_door_x = player_transform.translation.x > -1. * detection_area
         && player_transform.translation.x < detection_area;
