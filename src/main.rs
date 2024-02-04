@@ -5,7 +5,7 @@ use bevy::prelude::*;
 
 use bevy::input::common_conditions::input_toggle_active;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
-use character_select::CharacterSelectPlugin;
+use character_select::{CharacterSelectPlugin, SelectedCharacterState};
 use corridor::CorridorPlugin;
 use game::GameplayPlugin;
 use game_won::GameWonPlugin;
@@ -26,10 +26,10 @@ const HEIGHT: f32 = 900.0;
 
 #[derive(States, PartialEq, Eq, Default, Debug, Clone, Hash)]
 pub enum GameState {
-    #[default]
     MainMenu,
     CharacterSelect,
     Corridor,
+    #[default]
     Gameplay,
     GameWon,
 }
@@ -52,6 +52,7 @@ fn main() {
                 })
                 .build(),
         )
+        .add_state::<SelectedCharacterState>()
         .add_state::<GameState>()
         .add_systems(Startup, setup)
         .add_plugins((

@@ -25,7 +25,6 @@ pub enum SelectedCharacterState {
 impl Plugin for CharacterSelectPlugin {
     fn build(&self, app: &mut App) {
         app.add_state::<CharacterSelectState>()
-            .add_state::<SelectedCharacterState>()
             .add_systems(
                 OnEnter(GameState::CharacterSelect),
                 (reset_camera, spawn_select_scene),

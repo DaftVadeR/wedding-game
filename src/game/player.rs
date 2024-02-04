@@ -131,7 +131,7 @@ pub fn player_movement(
 
     transform.translation.y = transform.translation.y.clamp(
         -1. * (MAP_MOVABLE_HEIGHT / 2.) + PLAYER_HEIGHT / 2.,
-        MAP_MOVABLE_HEIGHT - PLAYER_HEIGHT / 2.,
+        MAP_MOVABLE_HEIGHT / 2. + PLAYER_HEIGHT / 2.,
     );
 
     movable.is_moving = key_pressed;
@@ -164,7 +164,7 @@ fn setup(
     mut assets: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
     mut next_state: ResMut<NextState<GamePlayState>>,
-    mut state: Res<State<SelectedCharacterState>>,
+    state: Res<State<SelectedCharacterState>>,
     // mut meshes: ResMut<Assets<Mesh>>,
     // mut materials: ResMut<Assets<ColorMaterial>>,
 ) {

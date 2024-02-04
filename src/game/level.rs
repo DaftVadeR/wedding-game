@@ -21,8 +21,8 @@ impl Plugin for LevelPlugin {
 
 pub const MAP_WIDTH: f32 = 3200.;
 pub const MAP_HEIGHT: f32 = 3200.;
-pub const MAP_MOVABLE_WIDTH: f32 = 2560.;
-pub const MAP_MOVABLE_HEIGHT: f32 = 2560.;
+pub const MAP_MOVABLE_WIDTH: f32 = 256.;
+pub const MAP_MOVABLE_HEIGHT: f32 = 256.;
 
 #[derive(Debug, Component)]
 pub struct Floor {}
