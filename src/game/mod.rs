@@ -7,11 +7,11 @@ use crate::GameState;
 use self::level::LevelPlugin;
 use self::player::PlayerPlugin;
 
-// use self::ui::GameUiPlugin;
+use self::ui::GameUiPlugin;
 
 mod level;
 mod player;
-// mod ui;
+mod ui;
 
 pub struct GameplayPlugin;
 
@@ -30,8 +30,7 @@ pub struct MyMusic;
 
 impl Plugin for GameplayPlugin {
     fn build(&self, app: &mut App) {
-        app
-            // .add_plugins(GameUiPlugin)
+        app.add_plugins(GameUiPlugin)
             .add_plugins(LevelPlugin)
             .add_state::<GamePlayState>()
             .add_plugins(PlayerPlugin)

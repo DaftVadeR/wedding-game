@@ -2,6 +2,8 @@ use bevy::app::Plugin;
 
 use bevy::prelude::*;
 
+use crate::main_menu::{BLACK, BORDER_COLOR, DARK_PURPLE, LIGHT_TEAL};
+
 use super::GameWonState;
 
 pub struct CongratsPlugin;
@@ -33,16 +35,6 @@ pub struct FlowerImageContainer;
 
 #[derive(Component)]
 pub struct FlowerImage;
-
-pub const BLACK: Color = Color::rgb(0., 0., 0.);
-pub const DARK_PURPLE: Color = Color::rgb(0.165, 0.09, 0.231);
-pub const PURPLE: Color = Color::rgb(0.247, 0.173, 0.373);
-pub const PURPLISH: Color = Color::rgb(0.298, 0.361, 0.529);
-pub const BLUE: Color = Color::rgb(0.267, 0.247, 0.482);
-pub const LIGHT_BLUE: Color = Color::rgb(0.412, 0.502, 0.62);
-pub const LIGHT_TEAL: Color = Color::rgb(0.584, 0.773, 0.675);
-
-pub const BORDER_COLOR: Color = Color::rgb(0.828, 0.606, 0.161);
 
 fn spawn_message(mut commands: Commands, assets: Res<AssetServer>) {
     // let font = assets.load("fonts/spectral/spectral_medium.ttf");
@@ -206,17 +198,17 @@ pub fn reset_camera(
     camera_transform.translation = Vec3::new(0., 0., 0.);
 }
 
-fn despawn_main_menu_ui(mut commands: Commands, ui_query: Query<Entity, With<CongratsUi>>) {
-    for ui in &ui_query {
-        commands.entity(ui).despawn_recursive();
-    }
-    // for music in &music_query {
-    //     commands.entity(music).despawn_recursive();
-    // }
-    // for exit in &eb_query {
-    //     commands.entity(exit).despawn_recursive();
-    // }
-    // for start in &sb_query {
-    //     commands.entity(start).despawn_recursive();
-    // }
-}
+// fn despawn_main_menu_ui(mut commands: Commands, ui_query: Query<Entity, With<CongratsUi>>) {
+//     for ui in &ui_query {
+//         commands.entity(ui).despawn_recursive();
+//     }
+//     // for music in &music_query {
+//     //     commands.entity(music).despawn_recursive();
+//     // }
+//     // for exit in &eb_query {
+//     //     commands.entity(exit).despawn_recursive();
+//     // }
+//     // for start in &sb_query {
+//     //     commands.entity(start).despawn_recursive();
+//     // }
+// }

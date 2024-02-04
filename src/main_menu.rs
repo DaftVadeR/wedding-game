@@ -48,6 +48,7 @@ pub const LIGHT_BLUE: Color = Color::rgb(0.412, 0.502, 0.62);
 pub const LIGHT_TEAL: Color = Color::rgb(0.584, 0.773, 0.675);
 
 pub const BORDER_COLOR: Color = Color::rgb(0.828, 0.606, 0.161);
+pub const BLACK: Color = Color::rgb(0., 0., 0.);
 
 fn spawn_main_menu_ui(mut commands: Commands, assets: Res<AssetServer>) {
     let font = assets.load("fonts/spectral/spectral_medium.ttf");
@@ -277,12 +278,6 @@ pub fn reset_camera(
 
     //
     camera_transform.translation = Vec3::new(0., 0., 0.);
-}
-
-fn play_music(music_controller: Query<&AudioSink, With<MyMusic>>, time: Res<Time>) {
-    // if let Ok(sink) = music_controller.get_single() {
-    //     // sink.toggle();
-    // }
 }
 
 fn despawn_main_menu_ui(

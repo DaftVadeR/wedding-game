@@ -1,27 +1,29 @@
 // use crate::player::CharacterLife;
 use bevy::prelude::*;
 
-use crate::player::Player;
-use crate::sprite::Health;
-use crate::GameState;
+use super::player::{CanLevel, Player};
+use crate::{
+    game::GamePlayState,
+    main_menu::{BORDER_COLOR, DARK_PURPLE, LIGHT_TEAL, PURPLISH},
+    sprite::Health,
+    GameState,
+};
 
 pub struct GameUiPlugin;
 
 impl Plugin for GameUiPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, ui_setup)
-            .add_systems(PostUpdate, ui_update);
+        println!("Load game play ui plugin");
+        app.add_systems(OnEnter(GamePlayState::Init), ui_setup)
+            .insert_resource(Time::<Fixed>::from_seconds(0.5))
+            .add_systems(
+                FixedUpdate,
+                ui_update.run_if(in_state(GamePlayState::Started)),
+            )
+            .add_systems(OnExit(GameState::Gameplay), unload);
 
-        // // simple "facilitator" schedules benefit from simpler single threaded scheduling
-        // let mut main_schedule = Schedule::new(Main);
-        // main_schedule.set_executor_kind(ExecutorKind::SingleThreaded);
-        // let mut fixed_update_loop_schedule = Schedule::new(RunFixedUpdateLoop);
-        // fixed_update_loop_schedule.set_executor_kind(ExecutorKind::SingleThreaded);
-
-        // app.add_schedule(main_schedule)
-        //     .add_schedule(fixed_update_loop_schedule)
-        //     .init_resource::<MainScheduleOrder>()
-        //     .add_systems(Main, Main::run_main);
+        // app.add_systems(OnEnterStartup, ui_setup)
+        //     .add_systems(PostUpdate, ui_update);
     }
 }
 
@@ -31,31 +33,51 @@ struct HealthUiValue;
 #[derive(Component)]
 struct HealthUiBar;
 
-fn ui_setup(mut commands: Commands) {
-    // Health bar
+#[derive(Component)]
+struct UiContainer;
 
+#[derive(Component)]
+struct LvlContainer;
+
+#[derive(Component)]
+struct LvlText;
+
+fn ui_setup(mut commands: Commands, assets: Res<AssetServer>) {
+    let ui_container = (
+        NodeBundle {
+            style: Style {
+                //XXX using Px here because UI isn't based on camera size, just window size
+                width: Val::Percent(100.),
+                height: Val::Percent(100.),
+                left: Val::Px(0.),
+                top: Val::Px(0.),
+                position_type: PositionType::Absolute,
+                ..default()
+            },
+            ..default()
+        },
+        UiContainer,
+        Name::new("UI Container"),
+    );
+
+    // Health bar
     let parent_node = (
         NodeBundle {
             style: Style {
                 //XXX using Px here because UI isn't based on camera size, just window size
-                width: Val::Percent(5.0),
-                height: Val::Percent(2.0),
-
-                // size: Size::new(Val::Percent(5.0), Val::Percent(2.0)),
-                left: Val::Percent(47.5),
+                width: Val::Px(300.),
+                height: Val::Px(35.),
+                left: Val::Px(40.),
                 right: Val::Auto,
-                top: Val::Percent(60.0),
-                bottom: Val::Auto,
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::FlexStart,
-                flex_direction: FlexDirection::Row,
+                bottom: Val::Px(40.),
                 position_type: PositionType::Absolute,
+                border: UiRect::all(Val::Px(2.)),
                 ..default()
             },
-            background_color: BackgroundColor(Color::BLACK),
+            border_color: BORDER_COLOR.into(),
+            background_color: PURPLISH.into(),
             ..default()
         },
-        GameplayOnly,
         HealthUiBar,
         Name::new("Health Bar UI"),
     );
@@ -63,85 +85,111 @@ fn ui_setup(mut commands: Commands) {
     let health_node = (
         NodeBundle {
             style: Style {
-                width: Val::Percent(0.0),
+                width: Val::Percent(50.0),
                 height: Val::Percent(100.0),
                 ..default()
             },
-            background_color: BackgroundColor(Color::RED),
+            background_color: BORDER_COLOR.into(),
             ..default()
         },
         HealthUiValue,
         Name::new("Health Bar Filled UI"),
     );
 
-    commands.spawn(parent_node).with_children(|commands| {
-        commands.spawn(health_node);
-    });
+    let lvl_container = (
+        NodeBundle {
+            style: Style {
+                position_type: PositionType::Absolute,
+                top: Val::Px(0.),
+                left: Val::Px(0.),
+                padding: UiRect {
+                    top: Val::Px(10.),
+                    left: Val::Px(20.),
+                    right: Val::Px(20.),
+                    bottom: Val::Px(10.),
+                },
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                ..default()
+            },
+            border_color: BORDER_COLOR.into(),
+            background_color: DARK_PURPLE.into(),
+            ..default()
+        },
+        LvlContainer,
+        Name::new("Lvl Container"),
+    );
 
-    // commands
-    //     .spawn(NodeBundle {
-    //         style: Style {
-    //             width: Val::Percent(100.0),
-    //             height: Val::Percent(100.0),
-    //             align_items: AlignItems::Center,
-    //             justify_content: JustifyContent::Center,
-    //             flex_direction: FlexDirection::Column,
-    //             ..default()
-    //         },
-    //         ..default()
-    //     })
-    //     .with_children(|parent| {
-    //         parent.spawn(
-    //             (
-    //                 TextBundle::from_section(
-    //                     (100.0).to_string(),
-    //                     TextStyle {
-    //                         font_size: 40.0,
-    //                         color: Color::ORANGE,
-    //                         ..default()
-    //                     },
-    //                 )
-    //                 .with_style(Style {
-    //                     position_type: PositionType::Absolute,
-    //                     bottom: Val::Px(5.0),
-    //                     left: Val::Px(5.0),
-    //                     ..default()
-    //                 }),
-    //                 HealthUiValue
-    //             )
-    //         );
-    // parent.spawn((
-    //     TextBundle::from_section(
-    //         "Orange: nothing counted yet".to_string(),
-    //         TextStyle {
-    //             font_size: 80.0,
-    //             color: Color::ORANGE,
-    //             ..default()
-    //         },
-    //     ),
-    //     OrangeCount,
-    // ));
-    // });
+    let font = assets.load("fonts/patua_one/patuaone.ttf");
+
+    let section = TextSection {
+        value: format!("Level: {}", 0.),
+        style: TextStyle {
+            font: font,
+            font_size: 38.0,
+            color: LIGHT_TEAL.into(),
+        },
+    };
+
+    let lvl = (
+        TextBundle {
+            text: Text {
+                sections: Vec::from([section]),
+                ..default()
+            },
+            ..Default::default()
+        },
+        Name::new("Level number"),
+        LvlText,
+    );
+
+    commands.spawn(ui_container).with_children(|commands| {
+        commands.spawn(parent_node).with_children(|commands| {
+            commands.spawn(health_node);
+        });
+
+        commands.spawn(lvl_container).with_children(|commands| {
+            commands.spawn(lvl);
+        });
+    });
 }
 
 fn ui_update(
     // mut commands: Commands,
     // mut game_state: ResMut<NextState<GameState>>,
-    player_query: Query<&Health, With<Player>>,
+    player_query: Query<(&Health, &CanLevel), With<Player>>,
     mut ui_health_query: Query<&mut Style, With<HealthUiValue>>,
-    // assets: Res<AssetServer>
+    mut ui_lvl_query: Query<&mut Text, With<LvlText>>,
+    assets: Res<AssetServer>,
 ) {
-    // let health = player_query.single();
+    let (health, lvl) = player_query.single();
 
-    // let mut health_block = ui_health_query.single_mut();
+    // Health
+    let mut health_block_style = ui_health_query.single_mut();
 
-    // health_block.width = Val::Percent(health.0);
+    health_block_style.width = Val::Percent(health.0);
 
-    // health_lbl.
+    println!("Health: {}", health.0);
 
-    // for (mut health_lbl) in ui_health_query.iter_mut() {
+    // Level
+    let mut text = ui_lvl_query.single_mut();
 
-    // }
+    let font = assets.load("fonts/patua_one/patuaone.ttf");
 
-    // health_lbl.sections[0].value = format!("{}", health.0);    // health_lbl;
+    let section = TextSection {
+        value: format!("Level: {}", lvl.level),
+        style: TextStyle {
+            font: font,
+            font_size: 38.0,
+            color: LIGHT_TEAL.into(),
+        },
+    };
+
+    text.sections = Vec::from([section]);
+}
+
+fn unload(mut ui_query: Query<Entity, With<UiContainer>>, mut commands: Commands) {
+    for ui in &mut ui_query.iter_mut() {
+        commands.entity(ui).despawn_recursive();
+    }
 }
