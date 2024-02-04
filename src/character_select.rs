@@ -82,7 +82,7 @@ pub fn get_lisa_character() -> CharacterBlock {
         name: "Lisa".to_string(),
         desc: "A friendly cleric who smites those not worthy of the grace of Paul Simon's greatness! A disarming smile and calm demeanor belie the terrifying badass within.".to_string(),
         pic_sprite: "sprites/player/lisa.png",
-        selected_character_state: SelectedCharacterState::Ailsa,
+        selected_character_state: SelectedCharacterState::Lisa,
     }
 }
 

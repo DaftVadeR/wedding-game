@@ -203,7 +203,6 @@ pub fn player_movement(
     );
 
     movable.is_moving = key_pressed;
-    println!("IS MOVING: {}", movable.is_moving);
 
     // IMPORTANT - need to compare with prior frame state to make sure not resetting anim unnecessary, but also
     // makes sure to reset on EVERY movement or direction change.
@@ -236,8 +235,6 @@ pub fn get_indices_for_movable(
     let diagonal_up_options = vec![Direction::UpLeft, Direction::UpRight];
     let diagonal_down_options = vec![Direction::DownLeft, Direction::DownRight];
     let horizontal = vec![Direction::Left, Direction::Right];
-
-    println!("IS MOVING: {}", movable.is_moving);
 
     let chosen: AnimationIndices;
 

@@ -5,14 +5,14 @@ use crate::character_select::{
     SelectedCharacterState, PLAYER_HEIGHT, PLAYER_WIDTH,
 };
 use crate::corridor::player::get_indices_for_movable;
-use crate::game_won::level::{MAP_HEIGHT, MAP_VERTICAL_OFFSET};
+use crate::game_won::level::{CLAMP_HEIGHT, CLAMP_WIDTH, MAP_HEIGHT, MAP_VERTICAL_OFFSET};
 use crate::sprite::{
     AnimationIndices, AnimationTimer, Direction, Movable, PlayerSpriteSheetAnimatable,
 };
 
 use crate::GameState;
 
-use super::level::MAP_WIDTH;
+use super::level::{CLAMP_OFFSET, MAP_WIDTH};
 
 #[derive(States, PartialEq, Eq, Default, Debug, Clone, Hash)]
 pub enum GameWonPlayerState {
@@ -189,17 +189,16 @@ pub fn player_movement(
     }
 
     transform.translation.x = transform.translation.x.clamp(
-        -1. * (MAP_WIDTH / 2.) + PLAYER_WIDTH / 2.,
-        MAP_WIDTH / 2. - PLAYER_WIDTH / 2.,
+        -1. * (CLAMP_WIDTH / 2.) + PLAYER_WIDTH / 2.,
+        CLAMP_WIDTH / 2. - PLAYER_WIDTH / 2.,
     );
 
     transform.translation.y = transform.translation.y.clamp(
-        -1. * (MAP_VERTICAL_OFFSET) + PLAYER_HEIGHT / 2.,
-        (MAP_HEIGHT - MAP_VERTICAL_OFFSET - PLAYER_HEIGHT / 2.),
+        -1. * (CLAMP_OFFSET) + CLAMP_HEIGHT / 2.,
+        (CLAMP_HEIGHT - CLAMP_OFFSET - PLAYER_HEIGHT / 2.),
     );
 
     movable.is_moving = key_pressed;
-    println!("IS MOVING: {}", movable.is_moving);
 
     // IMPORTANT - need to compare with prior frame state to make sure not resetting anim unnecessary, but also
     // makes sure to reset on EVERY movement or direction change.

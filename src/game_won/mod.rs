@@ -18,6 +18,7 @@ pub enum GameWonState {
 }
 
 mod level;
+mod level_items;
 mod player;
 
 // use congrats::CongratsPlugin;
@@ -53,7 +54,7 @@ fn spawn_game_won(
 ) {
     commands.spawn((
         AudioBundle {
-            source: assets.load("music/ending.ogg"),
+            source: assets.load("music/menu.ogg"),
             settings: PlaybackSettings {
                 mode: PlaybackMode::Loop,
                 volume: Volume::Absolute(VolumeLevel::new(0.2)),
