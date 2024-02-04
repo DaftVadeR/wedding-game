@@ -27,15 +27,6 @@ pub const PLAYER_SPEED_DEFAULT: f32 = 100.;
 pub struct PlayerPlugin;
 
 #[derive(Component)]
-pub struct GameplayOnly;
-
-#[derive(Debug, Component)]
-pub struct CanLevel {
-    pub experience: u64,
-    pub level: u32,
-}
-
-#[derive(Component)]
 pub struct Player;
 
 impl Plugin for PlayerPlugin {
@@ -52,37 +43,7 @@ impl Plugin for PlayerPlugin {
                 )
                     .run_if(in_state(CorridorPlayerState::Started)),
             );
-        //
-        // app.add_systems(Startup, /*OnEnter(GameState::StartingLoop),*/ spawn_player);
-        /*.add_systems(
-            (
-                player_movement,
-                player_exp_start_pickup,
-                player_gain_exp,
-                player_level_up,
-                player_game_over,
-            )
-            .in_set(OnUpdate(GameState::Gameplay)),
-        );*/
-        // // simple "facilitator" schedules benefit from simpler single threaded scheduling
-        // let mut main_schedule = Schedule::new(Main);
-        // main_schedule.set_executor_kind(ExecutorKind::SingleThreaded);
-        // let mut fixed_update_loop_schedule = Schedule::new(RunFixedUpdateLoop);
-        // fixed_update_loop_schedule.set_executor_kind(ExecutorKind::SingleThreaded);
-
-        // app.add_schedule(main_schedule)
-        //     .add_schedule(fixed_updat    e_loop_schedule)
-        //     .init_resource::<MainScheduleOrder>()
-        //     .add_systems(Main, Main::run_main);
     }
-}
-
-#[derive(States, PartialEq, Eq, Default, Debug, Clone, Hash)]
-pub enum CorridorLevelState {
-    #[default]
-    Unloaded,
-    Init,
-    Started,
 }
 
 pub fn unload(
@@ -91,14 +52,14 @@ pub fn unload(
     mut state: ResMut<State<CorridorPlayerState>>,
     mut commands: Commands,
 ) {
-    for (entity) in query.iter_mut() {
+    for entity in query.iter_mut() {
         commands.entity(entity).despawn_recursive();
     }
 }
 
 pub fn update_camera_from_player_position(
-    query: Query<(&Transform), (With<Player>)>,
-    mut camera_query: Query<(&mut Transform), (With<Camera>, Without<Player>)>,
+    query: Query<&Transform, With<Player>>,
+    mut camera_query: Query<&mut Transform, (With<Camera>, Without<Player>)>,
     mut next_state: ResMut<NextState<CorridorPlayerState>>,
     mut state: ResMut<State<CorridorPlayerState>>,
 ) {
@@ -199,7 +160,7 @@ pub fn player_movement(
 
     transform.translation.y = transform.translation.y.clamp(
         -1. * (MAP_VERTICAL_OFFSET) + PLAYER_HEIGHT / 2.,
-        (MAP_HEIGHT - MAP_VERTICAL_OFFSET - PLAYER_HEIGHT / 2.),
+        MAP_HEIGHT - MAP_VERTICAL_OFFSET - PLAYER_HEIGHT / 2.,
     );
 
     movable.is_moving = key_pressed;
@@ -270,50 +231,13 @@ fn animate_sprite(
 
     timer.tick(time.delta());
     if timer.just_finished() {
-        // if movable.is_moving {
         sprite.index = if sprite.index >= movable.current_animation_indices.last {
             movable.current_animation_indices.first
         } else {
             sprite.index + 1
         }
-
-        // } else {
-        //     sprite.index = if sprite.index == indices.last {
-        //         indices.first
-        //     } else {
-        //         indices.last
-        //     }
-        // }
     }
 }
-
-// fn get_knight_sprite() {
-
-//     let texture_handle = asset_server.load("sprites/player/knight_all_anims_spritesheet.png");
-
-//     // let builder = TextureAtlasBuilder::default().initial_size(Vec2 { x: 96., y: 32. });
-//     // builder.add_texture(, texture)
-
-//     let texture_atlas = TextureAtlas::from_grid(
-//         texture_handle,
-//         Vec2::new(PLAYER_WIDTH, PLAYER_HEIGHT),
-//         6,
-//         2,
-//         None,
-//         None,
-//     );
-
-//     // texture_atlas.
-//     // let texture_atlas_run =
-//     //     TextureAtlas::from_grid(texture_handle_run, Vec2::new(16.0, 16.0), 6, 1, None, None);
-
-//     let texture_atlas_handle = texture_atlases.add(texture_atlas);
-//     // let texture_atlas_run_handle = texture_atlases.add(texture_atlas_run);
-
-//     // Use only the subset of sprites in the sheet that make up the run animation
-//     let idle_animation_indices = AnimationIndices { first: 0, last: 5 };
-//     let run_animation_indices = AnimationIndices { first: 6, last: 11 };
-// }
 
 pub fn get_character_block(
     state: &SelectedCharacterState,

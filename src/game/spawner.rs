@@ -124,7 +124,7 @@ fn check_for_spawns(
     asset_server: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
     mut level_spawns: ResMut<LevelSpawns>,
-    player_query: Query<(&Transform), (With<Player>, Without<Harmful>)>,
+    player_query: Query<&Transform, (With<Player>, Without<Harmful>)>,
     time: Res<Time>,
 ) {
     let transform = player_query.single();

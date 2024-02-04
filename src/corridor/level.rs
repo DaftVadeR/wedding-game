@@ -10,7 +10,13 @@ use crate::GameState;
 pub struct LevelPlugin;
 use rand::Rng;
 
-use super::player::CorridorLevelState;
+#[derive(States, PartialEq, Eq, Default, Debug, Clone, Hash)]
+pub enum CorridorLevelState {
+    #[default]
+    Unloaded,
+    Init,
+    Started,
+}
 
 impl Plugin for LevelPlugin {
     fn build(&self, app: &mut App) {
@@ -67,7 +73,7 @@ fn update(
     mut next_fade_state: ResMut<NextState<FadeState>>,
 ) {
     let (mut texture_atlas_sprite, door_transform, mut door) = door_query.single_mut();
-    let (player_transform) = player_query.single();
+    let player_transform = player_query.single();
 
     let detection_area = 32.;
 
@@ -99,9 +105,9 @@ fn update(
         println!("Door is open");
         if door.open_timer.finished() {
             println!("Change to Game Won From Corridor");
-            next_game_state.set(GameState::GameWon);
             next_corridor_state.set(CorridorLevelState::Unloaded);
             next_player_state.set(CorridorPlayerState::Unloaded);
+            next_game_state.set(GameState::Gameplay);
         } else {
             println!("Door tick timer");
             door.open_timer.tick(time.delta());

@@ -1,15 +1,9 @@
-use crate::main_menu::{
-    MyMusic, BLUE, BORDER_COLOR, DARK_PURPLE, LIGHT_BLUE, LIGHT_TEAL, PURPLE, PURPLISH,
-};
+use crate::main_menu::{MyMusic, BLUE, BORDER_COLOR, DARK_PURPLE, LIGHT_TEAL, PURPLE};
 use crate::util_fade::FadeState;
 use crate::GameState;
-use bevy::app::{AppExit, Plugin};
+use bevy::app::Plugin;
 use bevy::prelude::*;
-use bevy::render::texture;
-use bevy::sprite::Anchor;
-use bevy::ui::FocusPolicy;
 use bevy::utils::HashMap;
-use rand::Rng;
 
 pub struct CharacterSelectPlugin;
 

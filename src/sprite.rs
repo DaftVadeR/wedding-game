@@ -31,7 +31,7 @@ pub struct PlayerSpriteSheetAnimatable {
 }
 
 #[derive(Component, Debug)]
-pub struct SpriteSheetAnimatable {
+pub struct EnemySpriteSheetAnimatable {
     pub idle_anim_indices: AnimationIndices,
     pub moving_anim_indices: AnimationIndices,
 }
@@ -44,3 +44,6 @@ pub struct AnimationIndices {
 
 #[derive(Component, Deref, DerefMut)]
 pub struct AnimationTimer(pub Timer);
+
+#[derive(Component, Debug)]
+pub struct Health(pub f32);

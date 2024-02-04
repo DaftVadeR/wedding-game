@@ -1,7 +1,9 @@
 use bevy::app::Plugin;
 use bevy::prelude::*;
 
-use crate::corridor::player::{CorridorLevelState, CorridorPlayerState};
+use crate::corridor::level::CorridorLevelState;
+use crate::corridor::player::CorridorPlayerState;
+
 use crate::GameState;
 pub struct CorridorPlugin;
 

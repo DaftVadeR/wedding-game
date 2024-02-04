@@ -3,7 +3,8 @@ use bevy::audio::{PlaybackMode, Volume, VolumeLevel};
 use bevy::prelude::*;
 
 use crate::character_select::SelectedCharacterState;
-use crate::game_won::player::{GameWonLevelState, GameWonPlayerState};
+use crate::game_won::level::GameWonLevelState;
+use crate::game_won::player::GameWonPlayerState;
 use crate::main_menu::MyMusic;
 use crate::GameState;
 

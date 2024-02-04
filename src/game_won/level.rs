@@ -1,19 +1,24 @@
 use bevy::prelude::*;
 use bevy::sprite::Anchor;
 
-use crate::sprite::{AnimationIndices, AnimationTimer, Movable, PlayerSpriteSheetAnimatable};
+use crate::sprite::AnimationIndices;
 
-use crate::game_won::level_items;
-
-use crate::game_won::player::{GameWonPlayerState, Player};
+use crate::game_won::player::Player;
 use crate::util_fade::FadeState;
 use crate::GameState;
 pub struct LevelPlugin;
 use rand::Rng;
 
 use super::npc::Npc;
-use super::player::GameWonLevelState;
 use super::GameWonState;
+
+#[derive(States, PartialEq, Eq, Default, Debug, Clone, Hash)]
+pub enum GameWonLevelState {
+    #[default]
+    Unloaded,
+    Init,
+    Started,
+}
 
 impl Plugin for LevelPlugin {
     fn build(&self, app: &mut App) {
@@ -68,7 +73,7 @@ fn update(
         (Without<Player>, With<House>),
     >,
     mut player_query: Query<(&mut TextureAtlasSprite, &Transform), (Without<House>, With<Player>)>,
-    mut npc_query: Query<(&mut TextureAtlasSprite), (Without<House>, With<Npc>, Without<Player>)>,
+    mut npc_query: Query<&mut TextureAtlasSprite, (Without<House>, With<Npc>, Without<Player>)>,
     time: Res<Time>,
     mut next_won_state: ResMut<NextState<GameWonState>>,
     mut next_fade_state: ResMut<NextState<FadeState>>,

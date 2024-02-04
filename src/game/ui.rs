@@ -3,7 +3,7 @@ use bevy::prelude::*;
 
 use crate::player::Player;
 use crate::sprite::Health;
-use crate::state::{GameState, GameplayOnly};
+use crate::GameState;
 
 pub struct GameUiPlugin;
 

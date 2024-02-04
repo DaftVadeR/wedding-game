@@ -16,16 +16,10 @@ pub enum GameWonNpcState {
 
 use crate::GameState;
 
+use super::level::GameWonLevelState;
 use super::level::House;
-use super::player::GameWonLevelState;
 
 pub struct NpcPlugin;
-
-#[derive(Debug, Component)]
-pub struct CanLevel {
-    pub experience: u64,
-    pub level: u32,
-}
 
 #[derive(Component)]
 pub struct Npc;

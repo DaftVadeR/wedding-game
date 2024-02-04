@@ -3,21 +3,19 @@ use std::hash::Hash;
 use bevy::core_pipeline::clear_color::ClearColorConfig;
 use bevy::prelude::*;
 
-use bevy::render::render_resource::FilterMode;
-use bevy::render::texture::{ImageFilterMode, ImageLoaderSettings};
-use bevy::winit::WinitSettings;
-use bevy::{input::common_conditions::input_toggle_active, time::Stopwatch};
+use bevy::input::common_conditions::input_toggle_active;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use character_select::CharacterSelectPlugin;
 use corridor::CorridorPlugin;
+use game::GameplayPlugin;
 use game_won::GameWonPlugin;
 use main_menu::MainMenuPlugin;
 use util_fade::FadePlugin;
 
 mod character_select;
 mod corridor;
+mod game;
 mod util_fade;
-// mod game;
 // mod game_over;
 mod game_won;
 mod main_menu;
@@ -33,8 +31,6 @@ pub enum GameState {
     CharacterSelect,
     Corridor,
     Gameplay,
-    LevelUp,
-    GameOver,
     GameWon,
 }
 
@@ -64,6 +60,7 @@ fn main() {
             CharacterSelectPlugin,
             CorridorPlugin,
             GameWonPlugin,
+            GameplayPlugin,
             /*GamePlugin, GameOver*/
         ))
         .add_plugins(

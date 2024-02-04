@@ -1,10 +1,7 @@
+use crate::GameState;
 use bevy::app::{AppExit, Plugin};
 use bevy::audio::{PlaybackMode, Volume, VolumeLevel};
 use bevy::prelude::*;
-use bevy_inspector_egui::egui::Rgba;
-
-use crate::util_fade::FadeState;
-use crate::GameState;
 
 pub struct MainMenuPlugin;
 

@@ -1,17 +1,40 @@
 use bevy::app::Plugin;
+use bevy::audio::{PlaybackMode, Volume, VolumeLevel};
 use bevy::prelude::*;
 
 use crate::GameState;
 
-mod ui;
+use self::level::LevelPlugin;
+use self::player::PlayerPlugin;
+
+// use self::ui::GameUiPlugin;
+
+mod level;
+mod player;
+// mod ui;
 
 pub struct GameplayPlugin;
 
+#[derive(States, PartialEq, Eq, Default, Debug, Clone, Hash)]
+pub enum GamePlayState {
+    #[default]
+    Unloaded,
+    Init,
+    Started,
+    LevelUp,
+    GameOver,
+}
+
+#[derive(Component)]
+pub struct MyMusic;
+
 impl Plugin for GameplayPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(GameUiPlugin)
-            // .add_plugins(LevelPlugin)
-            // .add_plugins(PlayerPlugin)
+        app
+            // .add_plugins(GameUiPlugin)
+            .add_plugins(LevelPlugin)
+            .add_state::<GamePlayState>()
+            .add_plugins(PlayerPlugin)
             .add_systems(
                 OnEnter(GameState::Gameplay),
                 (reset_camera, spawn_game_stuff),
@@ -20,21 +43,38 @@ impl Plugin for GameplayPlugin {
     }
 }
 
-fn spawn_game_stuff(mut commands: Commands, asset_server: Res<AssetServer>) {
-    // commands.spawn(Camera2dBundle {
-    //     transform: Transform::from_xyz(0., 0., 0.),
-    //     projection: OrthographicProjection {
-    //         far: 1000.,
-    //         near: -1000.,
-    //         scale: 0.5,
-    //         ..default()
-    //     },
-    //     ..default()
-    // });
-    // commands.spawn()gcc=
+fn spawn_game_stuff(
+    mut commands: Commands,
+    assets: Res<AssetServer>,
+    mut next_gameplay_state: ResMut<NextState<GamePlayState>>,
+    // mut next_level_state: ResMut<NextState<CorridorLevelState>>,
+) {
+    println!("Loading game plugin");
+
+    commands.spawn((
+        AudioBundle {
+            source: assets.load("music/gameplay.ogg"),
+            settings: PlaybackSettings {
+                mode: PlaybackMode::Loop,
+                volume: Volume::Absolute(VolumeLevel::new(0.5)),
+                ..default()
+            },
+        },
+        MyMusic,
+    ));
+
+    next_gameplay_state.set(GamePlayState::Init);
 }
 
-fn despawn_game_stuff(mut commands: Commands, asset_server: Res<AssetServer>) {}
+fn despawn_game_stuff(
+    mut commands: Commands,
+    music_query: Query<Entity, With<MyMusic>>,
+    assets: Res<AssetServer>,
+) {
+    for music in &music_query {
+        commands.entity(music).despawn_recursive();
+    }
+}
 
 #[derive(Component)]
 pub struct GameLevel;
