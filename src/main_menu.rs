@@ -196,7 +196,7 @@ fn spawn_main_menu_ui(mut commands: Commands, assets: Res<AssetServer>) {
 
     commands.spawn((
         AudioBundle {
-            source: assets.load("music/loopnice2.ogg"),
+            source: assets.load("music/menu.ogg"),
             settings: PlaybackSettings {
                 mode: PlaybackMode::Loop,
                 volume: Volume::Absolute(VolumeLevel::new(0.2)),

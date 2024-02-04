@@ -19,6 +19,7 @@ mod util_fade;
 // mod game_over;
 mod game_won;
 mod main_menu;
+mod sprite;
 
 const WIDTH: f32 = 1600.0;
 const HEIGHT: f32 = 900.0;
@@ -59,7 +60,7 @@ fn main() {
             CharacterSelectPlugin,
             CorridorPlugin,
             GameWonPlugin,
-            /*GamePlugin, GameOver, GameWon*/
+            /*GamePlugin, GameOver*/
         ))
         .add_plugins(
             WorldInspectorPlugin::default().run_if(input_toggle_active(false, KeyCode::Escape)),

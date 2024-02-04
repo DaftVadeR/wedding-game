@@ -5,7 +5,8 @@ use crate::character_select::{
     SelectedCharacterState, PLAYER_HEIGHT, PLAYER_WIDTH,
 };
 use crate::corridor::level::{MAP_HEIGHT, MAP_VERTICAL_OFFSET};
-use crate::corridor::sprite::{
+
+use crate::sprite::{
     AnimationIndices, AnimationTimer, Direction, Movable, PlayerSpriteSheetAnimatable,
 };
 
@@ -45,7 +46,7 @@ impl Plugin for PlayerPlugin {
             .add_systems(
                 Update,
                 (
-                    animate_sprite,
+                    // animate_sprite,
                     player_movement,
                     update_camera_from_player_position,
                 )
@@ -120,6 +121,7 @@ pub fn player_movement(
             &mut Movable,
             &mut TextureAtlasSprite,
             &mut Transform,
+            &mut AnimationTimer,
             &PlayerSpriteSheetAnimatable,
         ),
         With<Player>,
@@ -133,7 +135,7 @@ pub fn player_movement(
         return;
     }
 
-    let (mut movable, mut sprite, mut transform, animateable) = player.single_mut();
+    let (mut movable, mut sprite, mut transform, mut timer, animateable) = player.single_mut();
 
     let normal_translation = time.delta_seconds() * movable.speed;
 
@@ -141,10 +143,13 @@ pub fn player_movement(
 
     let mut key_pressed = false;
 
-    let old_direction = movable.direction;
+    let old_direction = movable.direction.clone();
+    let old_is_moving = movable.is_moving.clone();
 
     // Top and bottom with checks for diagonal.
     if input.pressed(KeyCode::W) {
+        key_pressed = true;
+
         if input.pressed(KeyCode::D) {
             movable.direction = Direction::UpRight;
             sprite.flip_x = false;
@@ -159,8 +164,8 @@ pub fn player_movement(
             movable.direction = Direction::Up;
             transform.translation.y += normal_translation;
         }
-        key_pressed = true;
     } else if input.pressed(KeyCode::S) {
+        key_pressed = true;
         if input.pressed(KeyCode::D) {
             sprite.flip_x = false;
             movable.direction = Direction::DownRight;
@@ -175,17 +180,16 @@ pub fn player_movement(
             movable.direction = Direction::Down;
             transform.translation.y -= normal_translation;
         }
-        key_pressed = true;
     } else if input.pressed(KeyCode::A) {
+        key_pressed = true;
         transform.translation.x -= normal_translation;
         sprite.flip_x = true;
         movable.direction = Direction::Left;
-        key_pressed = true;
     } else if input.pressed(KeyCode::D) {
+        key_pressed = true;
         transform.translation.x += normal_translation;
         sprite.flip_x = false;
         movable.direction = Direction::Right;
-        key_pressed = true;
     }
 
     transform.translation.x = transform.translation.x.clamp(
@@ -199,13 +203,28 @@ pub fn player_movement(
     );
 
     movable.is_moving = key_pressed;
+    println!("IS MOVING: {}", movable.is_moving);
 
-    // If it changed
-    if movable.direction != old_direction {
-        movable.current_animation_indices =
-            get_indices_for_movable(&movable, &animateable, &sprite);
+    // IMPORTANT - need to compare with prior frame state to make sure not resetting anim unnecessary, but also
+    // makes sure to reset on EVERY movement or direction change.
+    if movable.direction != old_direction || movable.is_moving != old_is_moving {
+        let chosen = get_indices_for_movable(&movable, &animateable, &sprite);
+
+        if chosen.is_some() {
+            movable.current_animation_indices = chosen.unwrap();
+        }
 
         sprite.index = movable.current_animation_indices.first;
+    }
+
+    timer.tick(time.delta());
+
+    if timer.just_finished() {
+        sprite.index = if sprite.index >= movable.current_animation_indices.last {
+            movable.current_animation_indices.first
+        } else {
+            sprite.index + 1
+        }
     }
 }
 
@@ -213,59 +232,61 @@ pub fn get_indices_for_movable(
     movable: &Movable,
     animateable: &PlayerSpriteSheetAnimatable,
     sprite: &TextureAtlasSprite,
-) -> AnimationIndices {
+) -> Option<AnimationIndices> {
+    let diagonal_up_options = vec![Direction::UpLeft, Direction::UpRight];
+    let diagonal_down_options = vec![Direction::DownLeft, Direction::DownRight];
+    let horizontal = vec![Direction::Left, Direction::Right];
+
+    println!("IS MOVING: {}", movable.is_moving);
+
+    let chosen: AnimationIndices;
+
     if !movable.is_moving {
-        animateable.idle_anim_indices.clone()
+        // THE PROBLEM>?
+        chosen = animateable.idle_anim_indices.clone();
     } else {
-        if vec![Direction::UpLeft, Direction::UpRight].contains(&movable.direction) {
-            animateable.moving_up_horiz_anim_indices.clone()
-        } else if vec![Direction::DownLeft, Direction::DownRight].contains(&movable.direction) {
-            animateable.moving_down_horiz_anim_indices.clone()
+        if diagonal_up_options.contains(&movable.direction) {
+            chosen = animateable.moving_up_horiz_anim_indices.clone();
+        } else if diagonal_down_options.contains(&movable.direction) {
+            chosen = animateable.moving_down_horiz_anim_indices.clone();
         } else if movable.direction == Direction::Up {
-            animateable.moving_up_anim_indices.clone()
+            chosen = animateable.moving_up_anim_indices.clone();
         } else if movable.direction == Direction::Down {
-            animateable.moving_down_anim_indices.clone()
+            chosen = animateable.moving_down_anim_indices.clone();
+        } else if horizontal.contains(&movable.direction) {
+            chosen = animateable.moving_horizontal_anim_indices.clone();
         } else {
-            animateable.moving_horizontal_anim_indices.clone()
+            return None;
         }
     }
+
+    return Some(chosen);
 }
 
 fn animate_sprite(
     time: Res<Time>,
-    mut query: Query<(
-        &PlayerSpriteSheetAnimatable,
-        &mut AnimationTimer,
-        &mut TextureAtlasSprite,
-        &Movable,
-    )>,
+    mut query: Query<(&Movable, &mut AnimationTimer, &mut TextureAtlasSprite)>,
     mut next_state: ResMut<NextState<CorridorPlayerState>>,
     mut state: ResMut<State<CorridorPlayerState>>,
 ) {
-    if state.get() != &CorridorPlayerState::Started {
-        return;
-    }
+    let (movable, mut timer, mut sprite) = query.single_mut();
 
-    for (animateable, mut timer, mut sprite, movable) in &mut query {
-        let indices = get_indices_for_movable(movable, animateable, &sprite);
-
-        timer.tick(time.delta());
-        if timer.just_finished() {
-            // if movable.is_moving {
-            sprite.index = if sprite.index >= indices.last {
-                indices.first
-            } else {
-                sprite.index + 1
-            }
-
-            // } else {
-            //     sprite.index = if sprite.index == indices.last {
-            //         indices.first
-            //     } else {
-            //         indices.last
-            //     }
-            // }
+    timer.tick(time.delta());
+    if timer.just_finished() {
+        // if movable.is_moving {
+        sprite.index = if sprite.index >= movable.current_animation_indices.last {
+            movable.current_animation_indices.first
+        } else {
+            sprite.index + 1
         }
+
+        // } else {
+        //     sprite.index = if sprite.index == indices.last {
+        //         indices.first
+        //     } else {
+        //         indices.last
+        //     }
+        // }
     }
 }
 

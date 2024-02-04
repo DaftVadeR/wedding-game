@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy::sprite::Anchor;
 
-use crate::corridor::sprite::AnimationIndices;
+use crate::sprite::AnimationIndices;
 
 use crate::corridor::player::{CorridorPlayerState, Player};
 use crate::util_fade::FadeState;

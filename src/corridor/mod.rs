@@ -6,8 +6,7 @@ use crate::GameState;
 pub struct CorridorPlugin;
 
 mod level;
-mod player;
-mod sprite;
+pub mod player;
 
 use level::LevelPlugin;
 use player::PlayerPlugin;
