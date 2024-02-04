@@ -79,16 +79,16 @@ fn update(
     let is_near_house_y =
         player_transform.translation.y > house_transform.translation.y - detection_area_y;
 
-    println!(
-        "player position: {} {}",
-        player_transform.translation.x, player_transform.translation.y,
-    );
-    println!(
-        "door position: {} {}",
-        house_transform.translation.x, house_transform.translation.y,
-    );
-    println!("is_near_house_x: {}", is_near_house_x,);
-    println!("is_near_house_y: {}", is_near_house_y,);
+    // println!(
+    //     "player position: {} {}",
+    //     player_transform.translation.x, player_transform.translation.y,
+    // );
+    // println!(
+    //     "door position: {} {}",
+    //     house_transform.translation.x, house_transform.translation.y,
+    // );
+    // println!("is_near_house_x: {}", is_near_house_x,);
+    // println!("is_near_house_y: {}", is_near_house_y,);
     // Check if player is in the right spot to open the door.
     if is_near_house_x && is_near_house_y {
         if !house.is_open {
@@ -288,7 +288,7 @@ fn setup(
     }
 
     draw_house(
-        final_x - MAP_WIDTH / 2. - HORIZONTAL_OFFSET_FOR_DOOR, // Account for path position and shift house to match door position
+        -1. * HORIZONTAL_OFFSET_FOR_DOOR, // Account for path position and shift house to match door position
         CLAMP_HEIGHT - CLAMP_OFFSET,
         &mut commands,
         &asset_server,
@@ -299,7 +299,7 @@ fn setup(
 }
 
 #[derive(Debug, Component)]
-struct House {
+pub struct House {
     is_open: bool,
     animation_indices: AnimationIndices,
     open_timer: Timer,

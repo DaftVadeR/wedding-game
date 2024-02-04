@@ -315,29 +315,16 @@ fn animate_sprite(
 //     let run_animation_indices = AnimationIndices { first: 6, last: 11 };
 // }
 
-fn setup(
-    mut commands: Commands,
-    mut assets: Res<AssetServer>,
-    mut texture_atlases: ResMut<Assets<TextureAtlas>>,
-    mut next_state: ResMut<NextState<CorridorPlayerState>>,
-    state: Res<State<SelectedCharacterState>>,
-    // mut meshes: ResMut<Assets<Mesh>>,
-    // mut materials: ResMut<Assets<ColorMaterial>>,
-) {
-    println!("Spawning corridor player plugin");
-    // let texture_handle = asset_server.load("player/knight_idle_spritesheet.png");
-    // let texture_handle_run = asset_server.load("player/knight_run_spritesheet.png");
-    // println!("Loading player spritesheet");
-
+pub fn get_character_block(
+    state: &SelectedCharacterState,
+) -> (CharacterBlock, PlayerSpriteSheetAnimatable) {
     let character: CharacterBlock;
 
-    if state.get() == &SelectedCharacterState::Ailsa {
+    if state == &SelectedCharacterState::Ailsa {
         character = get_ailsa_character();
     } else {
         character = get_lisa_character();
     }
-
-    let texture_atlas_handle = get_character_sprite(&character, &mut texture_atlases, &mut assets);
 
     // Use only the subset of sprites in the sheet that make up the run animation
     let idle_animation_indices = AnimationIndices { first: 0, last: 1 };
@@ -360,31 +347,49 @@ fn setup(
         last: 26,
     };
 
-    // Spawn Level
-    // let map_bottom_y_pos = -1. * (MAP_HEIGHT / 2.) + MAP_VERTICAL_OFFSET;
+    let animatable: PlayerSpriteSheetAnimatable = PlayerSpriteSheetAnimatable {
+        idle_anim_indices: idle_animation_indices,
+        moving_horizontal_anim_indices: run_horizontal_animation_indices,
+        moving_up_anim_indices: run_up_animation_indices,
+        moving_down_anim_indices: run_down_animation_indices,
+        moving_up_horiz_anim_indices: run_up_horiz_animation_indices,
+        moving_down_horiz_anim_indices: run_down_horiz_animation_indices,
+    };
+
+    (character, animatable)
+}
+
+fn setup(
+    mut commands: Commands,
+    mut assets: Res<AssetServer>,
+    mut texture_atlases: ResMut<Assets<TextureAtlas>>,
+    mut next_state: ResMut<NextState<CorridorPlayerState>>,
+    state: Res<State<SelectedCharacterState>>,
+    // mut meshes: ResMut<Assets<Mesh>>,
+    // mut materials: ResMut<Assets<ColorMaterial>>,
+) {
+    println!("Spawning corridor player plugin");
+
+    let (character, animatable) = get_character_block(state.get());
+    let texture_atlas_handle = get_character_sprite(&character, &mut texture_atlases, &mut assets);
+
+    let idle_anims = animatable.idle_anim_indices.clone();
 
     commands.spawn((
         SpriteSheetBundle {
             texture_atlas: texture_atlas_handle,
-            sprite: TextureAtlasSprite::new(idle_animation_indices.first),
+            sprite: TextureAtlasSprite::new(idle_anims.first),
             transform: Transform::from_xyz(0., 0., 1.),
             ..default()
         },
         AnimationTimer(Timer::from_seconds(0.3, TimerMode::Repeating)),
         Player,
-        PlayerSpriteSheetAnimatable {
-            idle_anim_indices: idle_animation_indices,
-            moving_horizontal_anim_indices: run_horizontal_animation_indices,
-            moving_up_anim_indices: run_up_animation_indices,
-            moving_down_anim_indices: run_down_animation_indices,
-            moving_up_horiz_anim_indices: run_up_horiz_animation_indices,
-            moving_down_horiz_anim_indices: run_down_horiz_animation_indices,
-        },
+        animatable,
         Movable {
             speed: PLAYER_SPEED_DEFAULT,
             direction: Direction::Down,
             is_moving: false,
-            current_animation_indices: idle_animation_indices.clone(),
+            current_animation_indices: idle_anims,
         },
     ));
 

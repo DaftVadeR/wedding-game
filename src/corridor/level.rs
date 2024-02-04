@@ -77,14 +77,14 @@ fn update(
     let is_near_door_y =
         player_transform.translation.y > MAP_HEIGHT - MAP_VERTICAL_OFFSET - detection_area;
 
-    println!(
-        "player position: {} {}",
-        player_transform.translation.x, player_transform.translation.y,
-    );
-    println!(
-        "door position: {} {}",
-        door_transform.translation.x, door_transform.translation.y,
-    );
+    // println!(
+    //     "player position: {} {}",
+    //     player_transform.translation.x, player_transform.translation.y,
+    // );
+    // println!(
+    //     "door position: {} {}",
+    //     door_transform.translation.x, door_transform.translation.y,
+    // );
     // Check if player is in the right spot to open the door.
     if is_near_door_x && is_near_door_y {
         if !door.is_open {

@@ -19,11 +19,15 @@ pub enum GameWonState {
 
 mod level;
 mod level_items;
+mod npc;
 mod player;
 
 // use congrats::CongratsPlugin;
 use level::LevelPlugin;
+use npc::NpcPlugin;
 use player::PlayerPlugin;
+
+use self::npc::GameWonNpcState;
 
 impl Plugin for GameWonPlugin {
     fn build(&self, app: &mut App) {
@@ -31,6 +35,7 @@ impl Plugin for GameWonPlugin {
             .add_systems(OnEnter(GameState::GameWon), (reset_camera, spawn_game_won))
             .add_plugins(LevelPlugin)
             // .add_plugins(CongratsPlugin)
+            .add_plugins(NpcPlugin)
             .add_plugins(PlayerPlugin);
     }
 }
@@ -51,6 +56,7 @@ fn spawn_game_won(
     assets: Res<AssetServer>,
     mut next_player_state: ResMut<NextState<GameWonPlayerState>>,
     mut next_level_state: ResMut<NextState<GameWonLevelState>>,
+    mut next_npc_state: ResMut<NextState<GameWonNpcState>>,
 ) {
     commands.spawn((
         AudioBundle {
@@ -67,6 +73,7 @@ fn spawn_game_won(
     println!("Loading game won plugin");
     next_player_state.set(GameWonPlayerState::Init);
     next_level_state.set(GameWonLevelState::Init);
+    next_npc_state.set(GameWonNpcState::Init);
 }
 
 // fn despawn_corridor(mut commands: Commands, asset_server: Res<AssetServer>) {}
