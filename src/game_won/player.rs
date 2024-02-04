@@ -275,7 +275,7 @@ fn setup(
         SpriteSheetBundle {
             texture_atlas: texture_atlas_handle,
             sprite: TextureAtlasSprite::new(idle_animation_indices.first),
-            transform: Transform::from_xyz(0., 0., 1.),
+            transform: Transform::from_xyz(0., 0., 3.),
             ..default()
         },
         AnimationTimer(Timer::from_seconds(0.3, TimerMode::Repeating)),

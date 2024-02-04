@@ -1,15 +1,10 @@
 use bevy::prelude::*;
 
-use crate::character_select::{
-    get_ailsa_character, get_character_sprite, get_lisa_character, CharacterBlock,
-    SelectedCharacterState,
-};
+use crate::character_select::{get_character_sprite, SelectedCharacterState};
 
 use crate::corridor::player::get_character_block;
 use crate::game_won::level::HORIZONTAL_OFFSET_FOR_DOOR;
-use crate::sprite::{
-    AnimationIndices, AnimationTimer, Direction, Movable, PlayerSpriteSheetAnimatable,
-};
+use crate::sprite::{AnimationTimer, Direction, Movable};
 
 #[derive(States, PartialEq, Eq, Default, Debug, Clone, Hash)]
 pub enum GameWonNpcState {
@@ -49,7 +44,7 @@ impl Plugin for NpcPlugin {
 
 pub fn unload(
     mut query: Query<Entity, With<Npc>>,
-    mut next_state: ResMut<NextState<GameWonNpcState>>,
+    // mut next_state: ResMut<NextState<GameWonNpcState>>,
     mut commands: Commands,
 ) {
     for entity in query.iter_mut() {
@@ -118,7 +113,7 @@ fn setup(
         SpriteSheetBundle {
             texture_atlas: texture_atlas_handle,
             sprite: TextureAtlasSprite::new(idle_anims.first),
-            transform: Transform::from_xyz(spawn_x, spawn_y, 1.),
+            transform: Transform::from_xyz(spawn_x, spawn_y, 2.),
             ..default()
         },
         AnimationTimer(Timer::from_seconds(0.3, TimerMode::Repeating)),

@@ -17,7 +17,7 @@ use super::GameWonState;
 impl Plugin for LevelPlugin {
     fn build(&self, app: &mut App) {
         app.add_state::<GameWonLevelState>()
-            .add_systems(OnEnter(GameWonLevelState::Init), (setup, draw_movable_zone))
+            .add_systems(OnEnter(GameWonLevelState::Init), (setup, draw_path))
             .add_systems(Update, update.run_if(in_state(GameWonLevelState::Started)))
             .add_systems(OnExit(GameState::GameWon), unload);
     }
@@ -32,7 +32,7 @@ pub const CLAMP_OFFSET: f32 = 128.;
 pub const HORIZONTAL_OFFSET_FOR_DOOR: f32 = 51.;
 
 // Used to make sure the level bottom is just below player. So you know to go up.
-pub const MAP_VERTICAL_OFFSET: f32 = 300.;
+pub const MAP_VERTICAL_OFFSET: f32 = 320.;
 
 #[derive(Debug, Component)]
 pub struct Wall {}
@@ -115,7 +115,7 @@ fn update(
     // Check for collision with player
 }
 
-fn draw_movable_zone(
+fn draw_path(
     mut commands: Commands,
     mut next_level_state: ResMut<NextState<GameWonLevelState>>,
     asset_server: Res<AssetServer>,
@@ -124,10 +124,10 @@ fn draw_movable_zone(
     println!("Corridor level setup");
 
     // Sprite stuff
-    let block_width = 16.;
-    let block_height = 16.;
-    let block_cols = 4;
-    let block_rows = 3;
+    let block_width = 32.;
+    let block_height = 32.;
+    let block_cols = 2;
+    let block_rows = 4;
     let total_atlas_blocks = block_cols * block_rows;
 
     // Calculate number of loops needed to fill the desired MAP or REGION size.
@@ -150,9 +150,38 @@ fn draw_movable_zone(
 
     //commands.spawn(Camera2dBundle::default());
     for index in 0..total_tiles {
+        let mut needs_flip = false;
+        let mut texture_index = 6;
+
+        if index < 2 {
+            // If bottom left or right square.
+            if index == 0 {
+                // Left
+                texture_index = 4;
+            } else if index == 1 {
+                // Right
+                texture_index = 5;
+            }
+        } else if index > total_tiles - 3 {
+            // if top left or right
+            if index == total_tiles - 2 {
+                // Left
+                texture_index = 2;
+            } else if index == total_tiles - 1 {
+                // Right
+                texture_index = 3;
+            }
+        } else {
+            texture_index = 7;
+
+            if index % 2 != 0 {
+                needs_flip = true;
+            }
+        }
+        //asd
         // println!("INDEX {} {} {}", index, rolling_x, rolling_y);
 
-        let texture_handle = asset_server.load("sprites/level/dungeon-floor.png");
+        let texture_handle = asset_server.load("sprites/level/dirt4_pipo_new.png");
 
         let texture_atlas = TextureAtlas::from_grid(
             texture_handle,
@@ -165,20 +194,21 @@ fn draw_movable_zone(
 
         let texture_atlas_handle = texture_atlases.add(texture_atlas);
 
-        let random_index: usize = rng.gen_range(0..total_atlas_blocks);
+        // let random_index: usize = rng.gen_range(0..total_atlas_blocks);
 
         commands.spawn((
             SpriteSheetBundle {
                 texture_atlas: texture_atlas_handle,
                 sprite: TextureAtlasSprite {
-                    index: random_index,
+                    index: texture_index,
                     anchor: Anchor::BottomLeft,
+                    flip_x: needs_flip,
                     ..default()
                 },
                 transform: Transform {
-                    // scale: Vec3::new(1., 1., 1.),
+                    scale: Vec3::new(1., 1., 1.),
                     rotation: Quat::IDENTITY,
-                    translation: Vec3::new(rolling_x, rolling_y, -0.3),
+                    translation: Vec3::new(rolling_x, rolling_y, 1.),
                     ..default()
                 },
 

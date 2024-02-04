@@ -3,6 +3,8 @@ use std::hash::Hash;
 use bevy::core_pipeline::clear_color::ClearColorConfig;
 use bevy::prelude::*;
 
+use bevy::render::render_resource::FilterMode;
+use bevy::render::texture::{ImageFilterMode, ImageLoaderSettings};
 use bevy::winit::WinitSettings;
 use bevy::{input::common_conditions::input_toggle_active, time::Stopwatch};
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
@@ -38,6 +40,8 @@ pub enum GameState {
 
 fn main() {
     App::new()
+        .insert_resource(Msaa::Off)
+        // .insert_resource(Msaa { samples: 1 })
         .add_plugins(
             DefaultPlugins
                 .set(ImagePlugin::default_nearest())
@@ -77,9 +81,9 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         },
         transform: Transform::from_xyz(0., 0., 0.),
         projection: OrthographicProjection {
-            far: 1000.,
+            // far: 1000.,
             near: -1000.,
-            scale: 0.3,
+            scale: 0.35,
             ..default()
         },
         ..default()
