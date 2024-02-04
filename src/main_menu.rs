@@ -35,12 +35,6 @@ pub struct StartButtonUI;
 pub struct ExitButtonUI;
 
 #[derive(Component)]
-pub struct SelectCharacterUI;
-
-#[derive(Component)]
-pub struct CharacterContainerUI;
-
-#[derive(Component)]
 pub struct MyMusic;
 
 #[derive(Component)]
@@ -114,8 +108,8 @@ fn spawn_main_menu_ui(mut commands: Commands, assets: Res<AssetServer>) {
     let image_top = (
         ImageBundle {
             style: Style {
-                width: Val::Px(532.),
-                height: Val::Px(190.),
+                width: Val::Px(618.),
+                height: Val::Px(256.),
                 // justify_content: JustifyContent::Center,
                 // align_items: AlignItems::Center,
                 // align_self: AlignSelf::Center,
@@ -199,7 +193,7 @@ fn spawn_main_menu_ui(mut commands: Commands, assets: Res<AssetServer>) {
             source: assets.load("music/menu.ogg"),
             settings: PlaybackSettings {
                 mode: PlaybackMode::Loop,
-                volume: Volume::Absolute(VolumeLevel::new(0.2)),
+                volume: Volume::Absolute(VolumeLevel::new(0.5)),
                 ..default()
             },
         },

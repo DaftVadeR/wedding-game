@@ -2,6 +2,7 @@ use bevy::app::Plugin;
 use bevy::audio::{PlaybackMode, Volume, VolumeLevel};
 use bevy::prelude::*;
 
+use crate::character_select::SelectedCharacterState;
 use crate::game_won::player::{GameWonLevelState, GameWonPlayerState};
 use crate::main_menu::MyMusic;
 use crate::GameState;
@@ -17,6 +18,7 @@ pub enum GameWonState {
     Congrats,
 }
 
+mod congrats;
 mod level;
 mod level_items;
 mod npc;
@@ -27,6 +29,7 @@ use level::LevelPlugin;
 use npc::NpcPlugin;
 use player::PlayerPlugin;
 
+use self::congrats::CongratsPlugin;
 use self::npc::GameWonNpcState;
 
 impl Plugin for GameWonPlugin {
@@ -34,9 +37,9 @@ impl Plugin for GameWonPlugin {
         app.add_state::<GameWonState>()
             .add_systems(OnEnter(GameState::GameWon), (reset_camera, spawn_game_won))
             .add_plugins(LevelPlugin)
-            // .add_plugins(CongratsPlugin)
             .add_plugins(NpcPlugin)
-            .add_plugins(PlayerPlugin);
+            .add_plugins(PlayerPlugin)
+            .add_plugins(CongratsPlugin);
     }
 }
 
@@ -54,16 +57,20 @@ pub fn reset_camera(
 fn spawn_game_won(
     mut commands: Commands,
     assets: Res<AssetServer>,
+    mut next_character_state: ResMut<NextState<SelectedCharacterState>>,
     mut next_player_state: ResMut<NextState<GameWonPlayerState>>,
     mut next_level_state: ResMut<NextState<GameWonLevelState>>,
     mut next_npc_state: ResMut<NextState<GameWonNpcState>>,
 ) {
+    // TESTING PURPOSES - TODO: REMOVE
+    // next_character_state.set(SelectedCharacterState::Ailsa);
+
     commands.spawn((
         AudioBundle {
             source: assets.load("music/menu.ogg"),
             settings: PlaybackSettings {
                 mode: PlaybackMode::Loop,
-                volume: Volume::Absolute(VolumeLevel::new(0.2)),
+                volume: Volume::Absolute(VolumeLevel::new(0.5)),
                 ..default()
             },
         },

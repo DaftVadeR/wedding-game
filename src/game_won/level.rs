@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy::sprite::Anchor;
 
-use crate::sprite::AnimationIndices;
+use crate::sprite::{AnimationIndices, AnimationTimer, Movable, PlayerSpriteSheetAnimatable};
 
 use crate::game_won::level_items;
 
@@ -11,11 +11,13 @@ use crate::GameState;
 pub struct LevelPlugin;
 use rand::Rng;
 
+use super::npc::Npc;
 use super::player::GameWonLevelState;
 use super::GameWonState;
 
 impl Plugin for LevelPlugin {
     fn build(&self, app: &mut App) {
+        println!("Load lkevel plugin game won");
         app.add_state::<GameWonLevelState>()
             .add_systems(OnEnter(GameWonLevelState::Init), (setup, draw_path))
             .add_systems(Update, update.run_if(in_state(GameWonLevelState::Started)))
@@ -61,14 +63,21 @@ fn unload(
 }
 
 fn update(
-    mut house_query: Query<(&mut TextureAtlasSprite, &Transform, &mut House)>,
-    player_query: Query<&Transform, With<Player>>,
+    mut house_query: Query<
+        (&mut TextureAtlasSprite, &Transform, &mut House),
+        (Without<Player>, With<House>),
+    >,
+    mut player_query: Query<(&mut TextureAtlasSprite, &Transform), (Without<House>, With<Player>)>,
+    mut npc_query: Query<(&mut TextureAtlasSprite), (Without<House>, With<Npc>, Without<Player>)>,
     time: Res<Time>,
     mut next_won_state: ResMut<NextState<GameWonState>>,
     mut next_fade_state: ResMut<NextState<FadeState>>,
+    mut next_level_state: ResMut<NextState<GameWonLevelState>>,
 ) {
     let (mut texture_atlas_sprite, house_transform, mut house) = house_query.single_mut();
-    let player_transform = player_query.single();
+    let (mut player_sprite, player_transform) = player_query.single_mut();
+    let mut npc_sprite = npc_query.single_mut();
+    // let (mut sprite) = player_update_query.single_mut();
 
     let detection_area_x = 40.;
     let detection_area_y = 24.;
@@ -90,25 +99,26 @@ fn update(
     // println!("is_near_house_x: {}", is_near_house_x,);
     // println!("is_near_house_y: {}", is_near_house_y,);
     // Check if player is in the right spot to open the door.
-    if is_near_house_x && is_near_house_y {
-        if !house.is_open {
-            println!("House opened");
-            house.is_open = true;
-            texture_atlas_sprite.index = house.animation_indices.last;
-            next_fade_state.set(FadeState::FadeToBlack);
-        }
+    if !house.is_open && is_near_house_x && is_near_house_y {
+        println!("House opened");
+        house.is_open = true;
+        texture_atlas_sprite.index = house.animation_indices.last;
+        // next_fade_state.set(FadeState::FadeToBlack);
     }
 
     if house.is_open {
         println!("House is open");
+        house.open_timer.tick(time.delta());
+        player_sprite.color.set_a(house.open_timer.percent_left());
+        npc_sprite.color.set_a(house.open_timer.percent_left());
+
         if house.open_timer.finished() {
             println!("Change to Congrats From Game Won");
             next_won_state.set(GameWonState::Congrats);
+
+            // next_won_state.set(GameWonState::Congrats);
             // next_level_state.set(GameWonLevelState::Unloaded);
             // next_player_state.set(GameWonPlayerState::Unloaded);
-        } else {
-            println!("House tick timer");
-            house.open_timer.tick(time.delta());
         }
     }
 
@@ -339,7 +349,7 @@ impl House {
     pub fn new() -> Self {
         Self {
             is_open: false,
-            open_timer: Timer::from_seconds(1., TimerMode::Once),
+            open_timer: Timer::from_seconds(2., TimerMode::Once),
             animation_indices: AnimationIndices { first: 0, last: 1 },
         }
     }
