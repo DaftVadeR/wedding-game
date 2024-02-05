@@ -35,6 +35,12 @@ impl Plugin for PlayerPlugin {
     }
 }
 
+pub fn unload(mut query: Query<Entity, With<Player>>, mut commands: Commands) {
+    for entity in query.iter_mut() {
+        commands.entity(entity).despawn_recursive();
+    }
+}
+
 pub fn update_camera_from_player_position(
     query: Query<&Transform, With<Player>>,
     mut camera_query: Query<&mut Transform, (With<Camera>, Without<Player>)>,
@@ -179,7 +185,7 @@ fn setup(
         SpriteSheetBundle {
             texture_atlas: texture_atlas_handle,
             sprite: TextureAtlasSprite::new(idle_anims.first),
-            transform: Transform::from_xyz(0., 0., 1.),
+            transform: Transform::from_xyz(0., 0., 4.),
             ..default()
         },
         AnimationTimer(Timer::from_seconds(0.3, TimerMode::Repeating)),
@@ -199,10 +205,4 @@ fn setup(
     ));
 
     next_state.set(GamePlayState::Started);
-}
-
-pub fn unload(mut query: Query<Entity, With<Player>>, mut commands: Commands) {
-    for entity in query.iter_mut() {
-        commands.entity(entity).despawn_recursive();
-    }
 }

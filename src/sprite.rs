@@ -13,6 +13,11 @@ pub enum Direction {
 }
 
 #[derive(Component, Debug)]
+pub struct DealsDamage {
+    pub damage: f32,
+}
+
+#[derive(Component, Debug)]
 pub struct Movable {
     pub speed: f32,
     pub direction: Direction,
@@ -30,7 +35,7 @@ pub struct PlayerSpriteSheetAnimatable {
     pub moving_up_horiz_anim_indices: AnimationIndices,
 }
 
-#[derive(Component, Debug)]
+#[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct EnemySpriteSheetAnimatable {
     pub idle_anim_indices: AnimationIndices,
     pub moving_anim_indices: AnimationIndices,

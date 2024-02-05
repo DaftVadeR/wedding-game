@@ -169,7 +169,7 @@ fn ui_update(
 
     health_block_style.width = Val::Percent(health.0);
 
-    println!("Health: {}", health.0);
+    // println!("Health: {}", health.0);
 
     // Level
     let mut text = ui_lvl_query.single_mut();

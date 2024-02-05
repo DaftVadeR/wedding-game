@@ -7,10 +7,15 @@ use crate::GameState;
 use self::level::LevelPlugin;
 use self::player::PlayerPlugin;
 
+use self::spawner::EnemySpawnerPlugin;
 use self::ui::GameUiPlugin;
 
 mod level;
 mod player;
+// mod potato_anim;
+// mod potato_enemy;
+mod spawner;
+// mod potato_spawner;
 mod ui;
 
 pub struct GameplayPlugin;
@@ -34,6 +39,7 @@ impl Plugin for GameplayPlugin {
             .add_plugins(LevelPlugin)
             .add_state::<GamePlayState>()
             .add_plugins(PlayerPlugin)
+            .add_plugins(EnemySpawnerPlugin)
             .add_systems(
                 OnEnter(GameState::Gameplay),
                 (reset_camera, spawn_game_stuff),
