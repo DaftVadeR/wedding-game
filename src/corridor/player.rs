@@ -175,15 +175,15 @@ pub fn player_movement(
         }
 
         sprite.index = movable.current_animation_indices.first;
-    }
+    } else {
+        timer.tick(time.delta());
 
-    timer.tick(time.delta());
-
-    if timer.just_finished() {
-        sprite.index = if sprite.index >= movable.current_animation_indices.last {
-            movable.current_animation_indices.first
-        } else {
-            sprite.index + 1
+        if timer.just_finished() {
+            sprite.index = if sprite.index >= movable.current_animation_indices.last {
+                movable.current_animation_indices.first
+            } else {
+                sprite.index + 1
+            }
         }
     }
 }

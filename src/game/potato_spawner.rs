@@ -62,6 +62,7 @@ pub fn create_enemy_anim_hashmap() -> HashMap<String, animation::Animation> {
 
     return hash_map;
 }
+
 pub fn update_spawning(
     primary_query: Query<&Window, With<PrimaryWindow>>,
     mut spawner_query: Query<&mut EnemySpawner>,
