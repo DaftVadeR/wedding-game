@@ -167,7 +167,7 @@ fn ui_update(
     // Health
     let mut health_block_style = ui_health_query.single_mut();
 
-    health_block_style.width = Val::Percent(health.0);
+    health_block_style.width = Val::Percent(health.total);
 
     // println!("Health: {}", health.0);
 

@@ -15,6 +15,7 @@ pub enum Direction {
 #[derive(Component, Debug)]
 pub struct DealsDamage {
     pub damage: f32,
+    pub tick_timer: Timer,
 }
 
 #[derive(Component, Debug)]
@@ -23,6 +24,8 @@ pub struct Movable {
     pub direction: Direction,
     pub is_moving: bool,
     pub current_animation_indices: AnimationIndices,
+    pub is_collided: bool,
+    pub is_state_changed: bool,
 }
 
 #[derive(Component, Debug)]
@@ -51,4 +54,6 @@ pub struct AnimationIndices {
 pub struct AnimationTimer(pub Timer);
 
 #[derive(Component, Debug)]
-pub struct Health(pub f32);
+pub struct Health {
+    pub total: f32,
+}

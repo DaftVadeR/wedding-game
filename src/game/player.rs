@@ -29,8 +29,21 @@ impl Plugin for PlayerPlugin {
             .add_systems(OnExit(GameState::Gameplay), unload)
             .add_systems(
                 Update,
-                (player_movement, update_camera_from_player_position)
+                (
+                    player_movement,
+                    update_camera_from_player_position,
+                    check_health,
+                )
                     .run_if(in_state(GamePlayState::Started)),
+            )
+            .add_systems(
+                Update,
+                (
+                    player_movement,
+                    update_camera_from_player_position,
+                    check_health,
+                )
+                    .run_if(in_state(GamePlayState::Boss)),
             );
     }
 }
@@ -54,6 +67,18 @@ pub fn update_camera_from_player_position(
     camera_transform.translation.y = player_transform.translation.y;
 }
 
+pub fn check_health(
+    query: Query<&Health, With<Player>>,
+    mut next_state: ResMut<NextState<GamePlayState>>,
+) {
+    let player_health = query.single();
+
+    if player_health.total <= 0. {
+        println!("Player has died");
+        next_state.set(GamePlayState::GameOver);
+    }
+}
+
 pub fn player_movement(
     mut player: Query<
         (
@@ -69,10 +94,6 @@ pub fn player_movement(
     time: Res<Time>,
     state: Res<State<GamePlayState>>,
 ) {
-    if state.get() != &GamePlayState::Started {
-        return;
-    }
-
     let (mut movable, mut sprite, mut transform, mut timer, animateable) = player.single_mut();
 
     let normal_translation = time.delta_seconds() * movable.speed;
@@ -152,15 +173,15 @@ pub fn player_movement(
         }
 
         sprite.index = movable.current_animation_indices.first;
-    }
+    } else {
+        timer.tick(time.delta());
 
-    timer.tick(time.delta());
-
-    if timer.just_finished() {
-        sprite.index = if sprite.index >= movable.current_animation_indices.last {
-            movable.current_animation_indices.first
-        } else {
-            sprite.index + 1
+        if timer.just_finished() {
+            sprite.index = if sprite.index >= movable.current_animation_indices.last {
+                movable.current_animation_indices.first
+            } else {
+                sprite.index + 1
+            }
         }
     }
 }
@@ -185,13 +206,13 @@ fn setup(
         SpriteSheetBundle {
             texture_atlas: texture_atlas_handle,
             sprite: TextureAtlasSprite::new(idle_anims.first),
-            transform: Transform::from_xyz(0., 0., 4.),
+            transform: Transform::from_xyz(0., 0., 10.),
             ..default()
         },
         AnimationTimer(Timer::from_seconds(0.3, TimerMode::Repeating)),
         Player,
         animatable,
-        Health(100.),
+        Health { total: 100. },
         CanLevel {
             experience: 0,
             level: 1,
@@ -201,6 +222,8 @@ fn setup(
             direction: Direction::Down,
             is_moving: false,
             current_animation_indices: idle_anims,
+            is_collided: false,
+            is_state_changed: true,
         },
     ));
 

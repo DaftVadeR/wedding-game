@@ -254,6 +254,8 @@ fn setup(
             direction: Direction::Down,
             is_moving: false,
             current_animation_indices: idle_animation_indices.clone(),
+            is_collided: false,
+            is_state_changed: true,
         },
     ));
 

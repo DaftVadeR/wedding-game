@@ -27,6 +27,7 @@ pub enum GamePlayState {
     Init,
     Started,
     LevelUp,
+    Boss,
     GameOver,
 }
 

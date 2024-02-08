@@ -118,6 +118,8 @@ fn setup(
             direction: Direction::Down,
             is_moving: false,
             current_animation_indices: idle_anims,
+            is_collided: false,
+            is_state_changed: true,
         },
     ));
 

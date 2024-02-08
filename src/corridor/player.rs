@@ -303,7 +303,14 @@ fn setup(
         SpriteSheetBundle {
             texture_atlas: texture_atlas_handle,
             sprite: TextureAtlasSprite::new(idle_anims.first),
-            transform: Transform::from_xyz(0., 0., 1.),
+            transform: Transform {
+                translation: Vec3 {
+                    x: 0.,
+                    y: 0.,
+                    z: 1.,
+                },
+                ..Default::default()
+            },
             ..default()
         },
         AnimationTimer(Timer::from_seconds(0.3, TimerMode::Repeating)),
@@ -314,6 +321,8 @@ fn setup(
             direction: Direction::Down,
             is_moving: false,
             current_animation_indices: idle_anims,
+            is_collided: false,
+            is_state_changed: true,
         },
     ));
 
