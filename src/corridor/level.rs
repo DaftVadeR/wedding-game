@@ -139,14 +139,14 @@ fn setup(
     let final_x = MAP_WIDTH / 2.;
     let final_y = MAP_HEIGHT - MAP_VERTICAL_OFFSET;
 
-    println!("TOTAL TILES {}", total_tiles);
+    // println!("TOTAL TILES {}", total_tiles);
 
     let mut rng = rand::thread_rng();
 
     // Start at -1280, -1280 for 2560 size map.
     let starting_point_x = -1. * (MAP_WIDTH / 2.);
     let starting_point_y = -1. * (MAP_VERTICAL_OFFSET);
-    println!("STARTING POINT Y {}", starting_point_y);
+    // println!("STARTING POINT Y {}", starting_point_y);
     let mut rolling_x = starting_point_x;
     let mut rolling_y = starting_point_y;
 

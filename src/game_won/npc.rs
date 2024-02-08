@@ -101,7 +101,7 @@ fn setup(
 
     let spawn_y = house_transform.translation.y + 10.;
 
-    println!("NPC POSITION: {} {}", spawn_x, spawn_y);
+    // println!("NPC POSITION: {} {}", spawn_x, spawn_y);
 
     commands.spawn((
         SpriteSheetBundle {

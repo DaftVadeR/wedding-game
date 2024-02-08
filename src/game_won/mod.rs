@@ -48,6 +48,7 @@ pub fn reset_camera(
     // query: Query<(&Transform) /*(With<Player>)*/>,
     mut camera_query: Query<&mut Transform, With<Camera> /*, Without<Player>*/>,
 ) {
+    println!("reset camera in setup game won");
     // let player_transform = query.single();
     let mut camera_transform = camera_query.single_mut();
 
@@ -63,6 +64,7 @@ fn spawn_game_won(
     mut next_level_state: ResMut<NextState<GameWonLevelState>>,
     mut next_npc_state: ResMut<NextState<GameWonNpcState>>,
 ) {
+    println!("spawn game won");
     // TESTING PURPOSES - TODO: REMOVE
     // next_character_state.set(SelectedCharacterState::Ailsa);
 

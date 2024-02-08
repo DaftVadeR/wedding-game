@@ -15,6 +15,7 @@ impl Plugin for GameUiPlugin {
     fn build(&self, app: &mut App) {
         println!("Load game play ui plugin");
         app.add_systems(OnEnter(GamePlayState::Init), ui_setup)
+            .add_systems(OnEnter(GamePlayState::Restart), unload)
             .insert_resource(Time::<Fixed>::from_seconds(0.5))
             .add_systems(
                 FixedUpdate,

@@ -14,6 +14,7 @@ impl Plugin for LevelPlugin {
     fn build(&self, app: &mut App) {
         println!("Load game play level plugin");
         app.add_systems(OnEnter(GamePlayState::Init), setup)
+            .add_systems(OnEnter(GamePlayState::Restart), unload)
             .add_systems(Update, update.run_if(in_state(GamePlayState::Started)))
             .add_systems(OnExit(GameState::Gameplay), unload);
     }
@@ -38,7 +39,7 @@ fn update(
     // time: Res<Time>,
     // mut next_won_state: ResMut<NextState<GameWonState>>
 ) {
-    let (mut player_sprite, player_transform) = player_query.single_mut();
+    // let (mut player_sprite, player_transform) = player_query.single_mut();
 
     // Check for collision with player
 }
@@ -64,7 +65,7 @@ fn setup(
     let final_x = MAP_WIDTH / 2.;
     let final_y = MAP_HEIGHT / 2.;
 
-    println!("TOTAL TILES {}", total_tiles);
+    // println!("TOTAL TILES {}", total_tiles);
 
     let mut rng = rand::thread_rng();
 
@@ -72,7 +73,7 @@ fn setup(
     let starting_point_x = -1. * final_x;
     let starting_point_y = -1. * final_y;
 
-    println!("STARTING POINT Y {}", starting_point_y);
+    // println!("STARTING POINT Y {}", starting_point_y);
 
     let mut rolling_x = starting_point_x;
     let mut rolling_y = starting_point_y;

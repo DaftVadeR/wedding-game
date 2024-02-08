@@ -136,7 +136,7 @@ fn draw_path(
     asset_server: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
 ) {
-    println!("Corridor level setup");
+    println!("Game Won level setup");
 
     // Sprite stuff
     let block_width = 32.;
@@ -152,14 +152,14 @@ fn draw_path(
     let final_x = CLAMP_WIDTH / 2.;
     let final_y = CLAMP_HEIGHT - CLAMP_OFFSET;
 
-    println!("TOTAL TILES {}", total_tiles);
+    // println!("TOTAL TILES {}", total_tiles);
 
     let mut rng = rand::thread_rng();
 
     // Start at -1280, -1280 for 2560 size map.
     let starting_point_x = -1. * (CLAMP_WIDTH / 2.);
     let starting_point_y = -1. * (CLAMP_OFFSET);
-    println!("STARTING POINT Y {}", starting_point_y);
+    // println!("STARTING POINT Y {}", starting_point_y);
     let mut rolling_x = starting_point_x;
     let mut rolling_y = starting_point_y;
 
@@ -276,7 +276,7 @@ fn setup(
     // Start at -1280, -1280 for 2560 size map.
     let starting_point_x = -1. * (MAP_WIDTH / 2.);
     let starting_point_y = -1. * (MAP_VERTICAL_OFFSET);
-    println!("STARTING POINT Y {}", starting_point_y);
+    // println!("STARTING POINT Y {}", starting_point_y);
     let mut rolling_x = starting_point_x;
     let mut rolling_y = starting_point_y;
 

@@ -71,6 +71,7 @@ impl Plugin for EnemySpawnerPlugin {
 
         app.add_systems(OnEnter(GamePlayState::Init), setup)
             .add_systems(OnExit(GameState::Gameplay), unload)
+            .add_systems(OnEnter(GamePlayState::Restart), (unload, restart))
             .add_systems(OnEnter(GamePlayState::Boss), spawn_boss)
             .add_systems(
                 Update,
@@ -90,6 +91,10 @@ impl Plugin for EnemySpawnerPlugin {
 }
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {}
+
+fn restart(mut commands: Commands, asset_server: Res<AssetServer>) {
+    commands.init_resource::<LevelSpawns>();
+}
 
 fn check_for_spawns(
     mut commands: Commands,
@@ -664,8 +669,14 @@ pub fn update_enemy_positions_and_sprites(
     }
 }
 
-pub fn unload(mut query: Query<Entity, With<Player>>, mut commands: Commands) {
+pub fn unload(
+    mut query: Query<Entity, With<Enemy>>,
+    mut level_spawns: ResMut<LevelSpawns>,
+    mut commands: Commands,
+) {
     for entity in query.iter_mut() {
         commands.entity(entity).despawn_recursive();
     }
+
+    commands.remove_resource::<LevelSpawns>();
 }

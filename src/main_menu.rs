@@ -12,9 +12,6 @@ impl Plugin for MainMenuPlugin {
             (reset_camera, spawn_main_menu_ui),
         )
         .add_systems(OnExit(GameState::MainMenu), despawn_main_menu_ui)
-        // .add_systems(OnEnter(GameState::GameOver), spawn_game_over_ui)
-        // .add_systems(OnExit(GameState::GameOver), despawn_game_over_ui)
-        // .add_systems(Startup, play_music)
         .add_systems(
             Update,
             (start_button_system, exit_button_system).run_if(in_state(GameState::MainMenu)),
@@ -154,7 +151,7 @@ fn spawn_main_menu_ui(mut commands: Commands, assets: Res<AssetServer>) {
         TextStyle {
             font: font.clone(),
             font_size: 40.0,
-            color: Color::rgb(0.9, 0.9, 0.9),
+            color: LIGHT_TEAL.into(),
         },
     );
 
@@ -182,7 +179,7 @@ fn spawn_main_menu_ui(mut commands: Commands, assets: Res<AssetServer>) {
         TextStyle {
             font,
             font_size: 40.0,
-            color: Color::rgb(0.9, 0.9, 0.9),
+            color: LIGHT_TEAL.into(),
         },
     );
 

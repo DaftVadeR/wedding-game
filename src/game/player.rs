@@ -26,6 +26,7 @@ pub struct Player;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(OnEnter(GamePlayState::Init), setup)
+            .add_systems(OnEnter(GamePlayState::Restart), unload)
             .add_systems(OnExit(GameState::Gameplay), unload)
             .add_systems(
                 Update,
@@ -163,8 +164,8 @@ pub fn player_movement(
 
     movable.is_moving = key_pressed;
 
-    // IMPORTANT - need to compare with prior frame state to make sure not resetting anim unnecessary, but also
-    // makes sure to reset on EVERY movement or direction change.
+    // IMPORTANT - need to compare with prior frame state to make sure not resetting anim unnecessarily,
+    // but also makes sure to reset on EVERY movement or direction change.
     if movable.direction != old_direction || movable.is_moving != old_is_moving {
         let chosen = get_indices_for_movable(&movable, &animateable, &sprite);
 

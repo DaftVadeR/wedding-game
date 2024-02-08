@@ -14,13 +14,6 @@ impl Plugin for CongratsPlugin {
             OnEnter(GameWonState::Congrats),
             (reset_camera, spawn_message),
         );
-        // .add_systems(OnEnter(GameState::GameOver), spawn_game_over_ui)
-        // .add_systems(OnExit(GameState::GameOver), despawn_game_over_ui)
-        // .add_systems(Startup, play_music)
-        // .add_systems(
-        //     Update,
-        //     (start_button_system, exit_button_system).run_if(in_state(GameState::MainMenu)),
-        // );
     }
 }
 
