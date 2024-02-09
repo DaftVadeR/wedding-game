@@ -50,6 +50,11 @@ pub struct ProjectileSpriteSheetAnimatable {
     pub moving_anim_indices: AnimationIndices,
 }
 
+#[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ExplosionSpriteSheetAnimatable {
+    pub anim_indices: AnimationIndices,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct AnimationIndices {
     pub first: usize,
@@ -79,9 +84,15 @@ pub enum ProjectileType {
 #[derive(Component)]
 pub struct Projectile;
 
-#[derive(Component)]
+#[derive(States, PartialEq, Eq, Default, Debug, Clone, Hash)]
+pub enum ExplosionType {
+    #[default]
+    Simple,
+}
+
+#[derive(Component, Default, Debug, Clone)]
 pub struct Explosion {
-    explosion_type: ProjectileState,
+    pub explosion_type: ExplosionType,
 }
 
 #[derive(States, PartialEq, Eq, Default, Debug, Clone, Hash)]
@@ -91,12 +102,6 @@ pub enum WeaponType {
     ProjectileHoming,
     SelfAoe,
     TargetAoe,
-}
-
-#[derive(States, PartialEq, Eq, Default, Debug, Clone, Hash)]
-pub enum ExplosionType {
-    #[default]
-    Simple,
 }
 
 #[derive(Debug, Clone)]

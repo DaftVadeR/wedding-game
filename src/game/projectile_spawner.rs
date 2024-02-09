@@ -4,7 +4,8 @@ use bevy::prelude::*;
 
 use crate::sprite::{
     get_translation_for_direction, AnimationIndices, AnimationTimer, DealsDamage, Direction,
-    Explosion, Movable, Projectile, ProjectileSpriteSheetAnimatable, Weapon, WeaponType,
+    Explosion, ExplosionSpriteSheetAnimatable, Health, Movable, Projectile,
+    ProjectileSpriteSheetAnimatable, Weapon, WeaponType,
 };
 use crate::GameState;
 
@@ -27,7 +28,8 @@ impl Plugin for ProjectileSpawnerPlugin {
                 Update,
                 (
                     update_projectiles,
-                    // update_projectile_collisions,
+                    update_projectile_collisions,
+                    update_explosions,
                     spawn_weapon_projectiles,
                 )
                     .run_if(
@@ -88,96 +90,112 @@ fn spawn_weapon_projectiles(
     }
 }
 
-// fn update_projectile_collisions(
-//     mut player_query: Query<(&Transform, &mut Health), (With<Player>, Without<Enemy>)>,
-//     mut enemy_query: Query<
-//         (&Transform, &mut Movable, &mut DealsDamage, Entity),
-//         (With<Enemy>, Without<Player>),
-//     >,
-//     mut projectile_query: Query<
-//         (&Transform, &mut Movable, &mut DealsDamage, Entity),
-//         (With<Enemy>, Without<Player>),
-//     >,
-//     time: Res<Time>,
-// ) {
-//     let (player_transform, mut player_health) = player_query.single_mut();
+const COLLISION_DISTANCE: f32 = 10.;
 
-//     // How I'll do collision:
+fn update_projectile_collisions(
+    assets: Res<AssetServer>,
+    mut texture_atlases: ResMut<Assets<TextureAtlas>>,
+    mut commands: Commands,
+    mut enemy_query: Query<(&Transform, &mut Health, Entity), (With<Enemy>, Without<Player>)>,
+    mut projectile_query: Query<
+        (&Transform, &mut Movable, &mut DealsDamage, Entity),
+        (With<Projectile>, Without<Player>),
+    >,
+    time: Res<Time>,
+) {
+    for (projectile_transform, mut projectile_movable, projectile_damage, projectile) in
+        projectile_query.iter_mut()
+    {
+        // let mut collided = false;
 
-//     // Two loops, one for primary entity, one nested, for collision checks.
+        // // projectile_damage.tick_timer.tick(time.delta());
 
-//     // So looping through entities twice.
+        // // Check for player collision
+        // let distance = enemy_transform
+        //     .translation
+        //     .distance(player_transform.translation);
 
-//     // In second loop, I just need to check the first loops entity values for
+        // if distance < COLLISION_DISTANCE {
+        //     println!("COLLIDED WITH ENEMY {}", distance);
+        //     colliding_enemies.push(ent_original.index());
 
-//     // - is_collided bool value. If it has already been triggered, ignore and move on. Actually, just break from the loop.
-//     // - transform translation check for collision, and then set the is_collided value to true on first loops enemy component
+        //     if enemy_damage.tick_timer.finished() {
+        //         enemy_damage.tick_timer.reset();
+        //         player_health.total -= enemy_damage.damage;
+        //     }
 
-//     // Do the same for player collision, possibly in the same loop to prevent conflicts between multiple loops by being able to check already changed values immediately.
+        //     collided = true;
+        // }
 
-//     // Once collided with the player, stop.
-//     let mut colliding_enemies: Vec<u32> = vec![];
+        for (enemy_transform, mut enemy_health, enemy) in enemy_query.iter_mut() {
+            let distance = enemy_transform
+                .translation
+                .distance(projectile_transform.translation);
 
-//     // Damage ticks are independent of collision state or movement. As long as in general vicinity, trigger damage tick.
-//     for (enemy_transform, _, mut enemy_damage, ent_original) in enemy_query_collision.iter_mut() {
-//         let mut collided = false;
+            if distance < COLLISION_DISTANCE {
+                println!("COLLIDED {}", distance);
+                enemy_health.total -= projectile_damage.damage;
 
-//         enemy_damage.tick_timer.tick(time.delta());
+                if enemy_health.total <= 0. {
+                    commands.entity(enemy).despawn_recursive();
+                }
 
-//         // Check for player collision
-//         let distance = enemy_transform
-//             .translation
-//             .distance(player_transform.translation);
+                projectile_movable.is_moving = false;
+                commands.entity(projectile).despawn_recursive();
 
-//         if distance < COLLISION_DISTANCE {
-//             println!("COLLIDED WITH PLAYER {}", distance);
-//             colliding_enemies.push(ent_original.index());
+                spawn_explosion_at_position(
+                    &assets,
+                    &mut texture_atlases,
+                    &mut commands,
+                    &enemy_transform.translation,
+                );
 
-//             if enemy_damage.tick_timer.finished() {
-//                 enemy_damage.tick_timer.reset();
-//                 player_health.total -= enemy_damage.damage;
-//             }
+                break;
+            }
+        }
+    }
+}
 
-//             collided = true;
-//         }
+fn spawn_explosion_at_position(
+    assets: &Res<AssetServer>,
+    texture_atlases: &mut ResMut<Assets<TextureAtlas>>,
+    commands: &mut Commands,
+    position: &Vec3,
+) {
+    const PROJECTILE_HEIGHT: f32 = 32.;
+    const PROJECTILE_WIDTH: f32 = 32.;
 
-//         // If no player collision, check for fellow enemy collisions
-//         // if !collided {
-//         //     for (other_transform, _, ent) in enemy_query_collision.iter() {
-//         //         if colliding_enemies.contains(&ent.index()) || ent_original.index() == ent.index() {
-//         //             continue;
-//         //         }
+    let anim_indices = AnimationIndices { first: 0, last: 5 };
 
-//         //         let distance = enemy_transform
-//         //             .translation
-//         //             .distance(other_transform.translation);
+    let animatable = ExplosionSpriteSheetAnimatable {
+        anim_indices: anim_indices.clone(),
+    };
 
-//         //         if distance < COLLISION_DISTANCE {
-//         //             println!("COLLIDED {}", distance);
-//         //             colliding_enemies.push(ent_original.index());
-//         //             break;
-//         //         }
-//         //     }
-//         // }
-//     }
+    let texture_handle = assets.load("sprites/effects/explosion_anim_spritesheet.png");
 
-//     for (_, mut enemy_movable, _, ent) in enemy_query_collision.iter_mut() {
-//         let old_is_collided = enemy_movable.is_collided;
+    let texture_atlas = TextureAtlas::from_grid(
+        texture_handle,
+        Vec2::new(PROJECTILE_WIDTH, PROJECTILE_HEIGHT),
+        6,
+        1,
+        None,
+        None,
+    );
 
-//         if colliding_enemies.contains(&ent.index()) {
-//             enemy_movable.is_collided = true;
-//             println!("COLLIDED VALUE SET");
-//         } else {
-//             enemy_movable.is_collided = false;
-//         }
+    let texture_atlas_handle = texture_atlases.add(texture_atlas);
 
-//         if old_is_collided != enemy_movable.is_collided {
-//             enemy_movable.is_state_changed = true;
-//         } else {
-//             enemy_movable.is_state_changed = false;
-//         }
-//     }
-// }
+    commands.spawn((
+        SpriteSheetBundle {
+            texture_atlas: texture_atlas_handle.clone(),
+            sprite: TextureAtlasSprite::new(anim_indices.first),
+            transform: Transform::from_xyz(position.x, position.y, 8.),
+            ..default()
+        },
+        AnimationTimer(Timer::from_seconds(0.1, TimerMode::Repeating)),
+        animatable.clone(),
+        Explosion { ..default() },
+    ));
+}
 
 pub fn update_projectiles(
     time: Res<Time>,
@@ -211,7 +229,15 @@ pub fn update_projectiles(
             projectile_transform.translation.z,
         );
 
-        let moving = normalized_translation_for_direction * diagonal_speed_translation;
+        let selected_translation = if normalized_translation_for_direction.x != 0.
+            && normalized_translation_for_direction.y != 0.
+        {
+            diagonal_speed_translation
+        } else {
+            normal_speed_translation
+        };
+
+        let moving = normalized_translation_for_direction * selected_translation;
 
         projectile_transform.translation.y += moving.y;
         projectile_transform.translation.x += moving.x;
@@ -229,6 +255,36 @@ pub fn update_projectiles(
 
         if projectile_anim_timer.elapsed() > Duration::from_secs(10) {
             commands.entity(entity).despawn_recursive();
+        }
+
+        // Update position
+    }
+}
+
+pub fn update_explosions(
+    time: Res<Time>,
+    mut explosions_query: Query<
+        (
+            &mut TextureAtlasSprite,
+            &mut AnimationTimer,
+            &ExplosionSpriteSheetAnimatable,
+            Entity,
+        ),
+        With<Explosion>,
+    >,
+    mut commands: Commands,
+) {
+    for (mut explosion_sprite, mut explosion_anim_timer, mut explosion_animatable, entity) in
+        explosions_query.iter_mut()
+    {
+        explosion_anim_timer.tick(time.delta());
+
+        if explosion_anim_timer.just_finished() {
+            if explosion_sprite.index >= explosion_animatable.anim_indices.last {
+                commands.entity(entity).despawn_recursive();
+            } else {
+                explosion_sprite.index = explosion_sprite.index + 1;
+            }
         }
 
         // Update position
