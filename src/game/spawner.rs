@@ -13,8 +13,6 @@ use bevy::prelude::*;
 use bevy::time::Stopwatch;
 use rand::prelude::*;
 
-pub struct EnemySpawnerPlugin;
-
 #[derive(PartialEq, Eq, Default, Debug, Clone, Hash)]
 enum EnemyType {
     #[default]
@@ -62,6 +60,8 @@ impl Default for LevelSpawns {
         Self::new()
     }
 }
+
+pub struct EnemySpawnerPlugin;
 
 impl Plugin for EnemySpawnerPlugin {
     fn build(&self, app: &mut App) {

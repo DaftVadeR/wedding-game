@@ -4,7 +4,7 @@ use crate::character_select::{
     get_ailsa_character, get_character_sprite, get_lisa_character, CharacterBlock,
     SelectedCharacterState, PLAYER_HEIGHT, PLAYER_WIDTH,
 };
-use crate::corridor::player::get_indices_for_movable;
+use crate::corridor::player::get_indices_for_movable_direction;
 use crate::game_won::level::{CLAMP_HEIGHT, CLAMP_WIDTH};
 use crate::sprite::{
     AnimationIndices, AnimationTimer, Direction, Movable, PlayerSpriteSheetAnimatable,
@@ -164,7 +164,7 @@ pub fn player_movement(
     // IMPORTANT - need to compare with prior frame state to make sure not resetting anim unnecessary, but also
     // makes sure to reset on EVERY movement or direction change.
     if movable.direction != old_direction || movable.is_moving != old_is_moving {
-        let chosen = get_indices_for_movable(&movable, &animateable, &sprite);
+        let chosen = get_indices_for_movable_direction(&movable, &animateable, &sprite);
 
         if chosen.is_some() {
             movable.current_animation_indices = chosen.unwrap();

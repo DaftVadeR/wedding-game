@@ -168,7 +168,7 @@ pub fn player_movement(
     // IMPORTANT - need to compare with prior frame state to make sure not resetting anim unnecessary, but also
     // makes sure to reset on EVERY movement or direction change.
     if movable.direction != old_direction || movable.is_moving != old_is_moving {
-        let chosen = get_indices_for_movable(&movable, &animateable, &sprite);
+        let chosen = get_indices_for_movable_direction(&movable, &animateable, &sprite);
 
         if chosen.is_some() {
             movable.current_animation_indices = chosen.unwrap();
@@ -188,7 +188,7 @@ pub fn player_movement(
     }
 }
 
-pub fn get_indices_for_movable(
+pub fn get_indices_for_movable_direction(
     movable: &Movable,
     animateable: &PlayerSpriteSheetAnimatable,
     sprite: &TextureAtlasSprite,

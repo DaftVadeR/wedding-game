@@ -1,7 +1,8 @@
 use bevy::prelude::*;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Direction {
+    Custom(Vec3),
     Left,
     Right,
     Up,
@@ -44,6 +45,11 @@ pub struct EnemySpriteSheetAnimatable {
     pub moving_anim_indices: AnimationIndices,
 }
 
+#[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ProjectileSpriteSheetAnimatable {
+    pub moving_anim_indices: AnimationIndices,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct AnimationIndices {
     pub first: usize,
@@ -56,4 +62,62 @@ pub struct AnimationTimer(pub Timer);
 #[derive(Component, Debug)]
 pub struct Health {
     pub total: f32,
+}
+
+#[derive(PartialEq, Eq, Default, Debug, Clone, Hash)]
+pub enum ProjectileState {
+    #[default]
+    Dispatched,
+}
+
+#[derive(PartialEq, Eq, Default, Debug, Clone, Hash)]
+pub enum ProjectileType {
+    #[default]
+    Guitar,
+}
+
+#[derive(Component)]
+pub struct Projectile;
+
+#[derive(Component)]
+pub struct Explosion {
+    explosion_type: ProjectileState,
+}
+
+#[derive(States, PartialEq, Eq, Default, Debug, Clone, Hash)]
+pub enum WeaponType {
+    #[default]
+    ProjectileStraight,
+    ProjectileHoming,
+    SelfAoe,
+    TargetAoe,
+}
+
+#[derive(States, PartialEq, Eq, Default, Debug, Clone, Hash)]
+pub enum ExplosionType {
+    #[default]
+    Simple,
+}
+
+#[derive(Debug, Clone)]
+pub struct Weapon {
+    pub name: String,
+    pub tick_timer: Timer,
+    pub weapon_type: WeaponType,
+    pub pic_sprite: &'static str,
+    pub scale: f32,
+}
+
+pub fn get_translation_for_direction(direction: Direction, default_z: f32) -> Vec3 {
+    match direction {
+        Direction::Custom(vec) => Vec3::new(vec.x, vec.y, default_z),
+        Direction::Left => Vec3::new(-1., 0., default_z),
+        Direction::Right => Vec3::new(1., 0., default_z),
+        Direction::Up => Vec3::new(0., 1., default_z),
+        Direction::Down => Vec3::new(0., -1., default_z),
+        Direction::UpLeft => Vec3::new(-1., 1., default_z),
+        Direction::UpRight => Vec3::new(1., 1., default_z),
+        Direction::DownLeft => Vec3::new(-1., -1., default_z),
+        Direction::DownRight => Vec3::new(1., -1., default_z),
+    }
 }

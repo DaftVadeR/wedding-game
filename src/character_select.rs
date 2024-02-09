@@ -1,4 +1,6 @@
+use crate::game::weapons::get_guitar_weapon;
 use crate::main_menu::{MyMusic, BLUE, BORDER_COLOR, DARK_PURPLE, LIGHT_TEAL, PURPLE};
+use crate::sprite::Weapon;
 use crate::util_fade::FadeState;
 use crate::GameState;
 use bevy::app::Plugin;
@@ -58,6 +60,7 @@ pub struct CharacterBlock {
     pub pic_sprite: &'static str,
     pub desc: String,
     pub selected_character_state: SelectedCharacterState,
+    pub starting_weapon: Weapon,
 }
 
 pub fn get_ailsa_character() -> CharacterBlock {
@@ -67,6 +70,7 @@ pub fn get_ailsa_character() -> CharacterBlock {
             .to_string(),
         pic_sprite: "sprites/player/ailsa.png",
         selected_character_state: SelectedCharacterState::Ailsa,
+        starting_weapon: get_guitar_weapon()
     }
 }
 
@@ -76,6 +80,7 @@ pub fn get_lisa_character() -> CharacterBlock {
         desc: "A friendly cleric who smites those not worthy of the grace of Paul Simon's greatness! A disarming smile and calm demeanor belie the terrifying badass within.".to_string(),
         pic_sprite: "sprites/player/lisa.png",
         selected_character_state: SelectedCharacterState::Lisa,
+        starting_weapon: get_guitar_weapon()
     }
 }
 

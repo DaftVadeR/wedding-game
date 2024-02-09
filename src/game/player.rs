@@ -1,13 +1,16 @@
 use crate::character_select::{
     get_character_sprite, SelectedCharacterState, PLAYER_HEIGHT, PLAYER_WIDTH,
 };
-use crate::corridor::player::{get_character_block, get_indices_for_movable};
-use crate::sprite::{AnimationTimer, Direction, Health, Movable, PlayerSpriteSheetAnimatable};
+use crate::corridor::player::{get_character_block, get_indices_for_movable_direction};
+use crate::sprite::{
+    AnimationTimer, Direction, Health, Movable, PlayerSpriteSheetAnimatable, Weapon,
+};
 use crate::GameState;
 
 use bevy::prelude::*;
 
 use super::level::{MAP_MOVABLE_HEIGHT, MAP_MOVABLE_WIDTH};
+
 use super::GamePlayState;
 
 const PLAYER_SPEED_DEFAULT: f32 = 100.;
@@ -21,7 +24,9 @@ pub struct CanLevel {
 }
 
 #[derive(Component)]
-pub struct Player;
+pub struct Player {
+    pub weapons: Vec<Weapon>,
+}
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
@@ -167,7 +172,7 @@ pub fn player_movement(
     // IMPORTANT - need to compare with prior frame state to make sure not resetting anim unnecessarily,
     // but also makes sure to reset on EVERY movement or direction change.
     if movable.direction != old_direction || movable.is_moving != old_is_moving {
-        let chosen = get_indices_for_movable(&movable, &animateable, &sprite);
+        let chosen = get_indices_for_movable_direction(&movable, &animateable, &sprite);
 
         if chosen.is_some() {
             movable.current_animation_indices = chosen.unwrap();
@@ -211,7 +216,9 @@ fn setup(
             ..default()
         },
         AnimationTimer(Timer::from_seconds(0.3, TimerMode::Repeating)),
-        Player,
+        Player {
+            weapons: vec![character.starting_weapon.clone()],
+        },
         animatable,
         Health { total: 100. },
         CanLevel {
