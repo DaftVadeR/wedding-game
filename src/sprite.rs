@@ -71,55 +71,6 @@ pub struct Health {
     pub total: f32,
 }
 
-#[derive(PartialEq, Eq, Default, Debug, Clone, Hash)]
-pub enum ProjectileState {
-    #[default]
-    Dispatched,
-}
-
-#[derive(Component)]
-pub struct Projectile {
-    pub category: ProjectileCategory,
-    pub width: f32,
-    pub height: f32,
-}
-
-#[derive(States, PartialEq, Eq, Default, Debug, Clone, Hash)]
-pub enum ExplosionType {
-    #[default]
-    Simple,
-}
-
-#[derive(Component, Default, Debug, Clone)]
-pub struct Explosion {
-    pub explosion_type: ExplosionType,
-}
-
-#[derive(States, PartialEq, Eq, Default, Debug, Clone, Hash)]
-pub enum ProjectileCategory {
-    #[default]
-    ProjectileStraight,
-    ProjectileHoming,
-    SelfAoe,
-    TargetAoe,
-}
-
-#[derive(Debug, Clone)]
-pub struct Weapon {
-    pub name: String,
-    pub desc: String,
-    pub variant: WeaponsEnum,
-    pub tick_timer: Timer,
-    pub projectile_category: ProjectileCategory,
-    pub projectile_sprite: &'static str,
-    pub projectile_sprite_indices: AnimationIndices,
-    pub projectile_sprite_scale: f32,
-    pub projectile_sprite_height: f32,
-    pub projectile_sprite_width: f32,
-    pub projectile_sprite_rows: usize,
-    pub projectile_sprite_cols: usize,
-}
-
 pub fn get_translation_for_direction(direction: Direction, default_z: f32) -> Vec3 {
     match direction {
         Direction::Custom(vec) => Vec3::new(vec.x, vec.y, default_z),
@@ -133,3 +84,8 @@ pub fn get_translation_for_direction(direction: Direction, default_z: f32) -> Ve
         Direction::DownRight => Vec3::new(1., -1., default_z),
     }
 }
+
+// pub fn get_rotation_for_direction(direction: Direction, default_z: f32) ->  {
+//     let custom_direction_translation = get_translation_for_direction(direction, default_z);
+
+// }

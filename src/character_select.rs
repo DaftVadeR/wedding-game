@@ -1,6 +1,6 @@
-use crate::game::weapons::{get_guitar_weapon, get_horse_weapon};
+use crate::game::weapons::{get_guitar_weapon, get_horse_weapon, Weapon};
 use crate::main_menu::{MyMusic, BLUE, BORDER_COLOR, DARK_PURPLE, LIGHT_TEAL, PURPLE};
-use crate::sprite::Weapon;
+
 use crate::util_fade::FadeState;
 use crate::GameState;
 use bevy::app::Plugin;
@@ -19,8 +19,8 @@ pub enum CharacterSelectState {
 
 #[derive(States, PartialEq, Eq, Default, Debug, Clone, Hash)]
 pub enum SelectedCharacterState {
-    #[default]
     Ailsa,
+    #[default]
     Lisa,
 }
 

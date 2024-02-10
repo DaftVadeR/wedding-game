@@ -1,9 +1,6 @@
-use crate::sprite::{
-    AnimationIndices, ProjectileCategory, ProjectileSpriteSheetAnimatable, Weapon,
-};
-use bevy::{prelude::*, utils::hashbrown::HashMap};
+use crate::sprite::{AnimationIndices, ProjectileSpriteSheetAnimatable};
+use bevy::prelude::*;
 use rand::{rngs::ThreadRng, Rng};
-use std::{process::exit, slice::Iter};
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum WeaponsEnum {
@@ -14,6 +11,59 @@ pub enum WeaponsEnum {
 
 impl WeaponsEnum {
     const VALUES: [WeaponsEnum; 2] = [WeaponsEnum::Guitar, WeaponsEnum::Horse];
+}
+
+#[derive(PartialEq, Eq, Default, Debug, Clone, Hash)]
+pub enum ProjectileState {
+    #[default]
+    Dispatched,
+}
+
+#[derive(Component)]
+pub struct Projectile {
+    pub props: ProjectileProps,
+}
+
+#[derive(States, PartialEq, Eq, Default, Debug, Clone, Hash)]
+pub enum ExplosionType {
+    #[default]
+    Simple,
+}
+
+#[derive(Component, Default, Debug, Clone)]
+pub struct Explosion {
+    pub explosion_type: ExplosionType,
+}
+
+#[derive(States, PartialEq, Eq, Default, Debug, Clone, Hash)]
+pub enum ProjectileCategory {
+    #[default]
+    ProjectileStraight,
+    ProjectileHoming,
+    SelfAoe,
+    TargetAoe,
+}
+
+#[derive(Debug, Clone)]
+pub struct ProjectileProps {
+    pub projectile_category: ProjectileCategory,
+    pub projectile_sprite: &'static str,
+    pub projectile_sprite_indices: AnimationIndices,
+    pub projectile_sprite_scale: f32,
+    pub projectile_sprite_height: f32,
+    pub projectile_sprite_width: f32,
+    pub projectile_sprite_rows: usize,
+    pub projectile_sprite_cols: usize,
+    pub projectile_aoe_radius: f32,
+}
+
+#[derive(Debug, Clone)]
+pub struct Weapon {
+    pub name: String,
+    pub desc: String,
+    pub variant: WeaponsEnum,
+    pub tick_timer: Timer,
+    pub projectile_props: ProjectileProps,
 }
 
 pub fn get_available_weapons(player_weapons: &Vec<Weapon>, num_weapons: usize) -> Vec<Weapon> {
@@ -123,14 +173,18 @@ pub fn get_guitar_weapon() -> Weapon {
         desc: "It hits hard. But throwing guitars takes a while...".into(),
         tick_timer: Timer::from_seconds(1.5, TimerMode::Repeating),
         variant: WeaponsEnum::Guitar,
-        projectile_sprite: "sprites/weapons/guitar_pixelated_small.png",
-        projectile_sprite_scale: 0.4,
-        projectile_category: ProjectileCategory::ProjectileStraight,
-        projectile_sprite_indices: AnimationIndices { first: 0, last: 2 },
-        projectile_sprite_height: 64.,
-        projectile_sprite_width: 64.,
-        projectile_sprite_rows: 1,
-        projectile_sprite_cols: 3,
+        projectile_props: ProjectileProps {
+            // Pass to projectile for duration of lifetime
+            projectile_sprite: "sprites/weapons/guitar_pixelated_small.png",
+            projectile_sprite_scale: 0.4,
+            projectile_category: ProjectileCategory::ProjectileStraight,
+            projectile_sprite_indices: AnimationIndices { first: 0, last: 2 },
+            projectile_sprite_height: 64.,
+            projectile_sprite_width: 64.,
+            projectile_sprite_rows: 1,
+            projectile_sprite_cols: 3,
+            projectile_aoe_radius: 0.,
+        },
     }
 }
 
@@ -140,14 +194,17 @@ pub fn get_horse_weapon() -> Weapon {
         desc: "Devastating area of attack ability. \"Never underestimate horses.\" - Lisa".into(),
         tick_timer: Timer::from_seconds(2.5, TimerMode::Repeating),
         variant: WeaponsEnum::Horse,
-        projectile_sprite: "sprites/weapons/horse.png",
-        projectile_sprite_scale: 0.4,
-        projectile_category: ProjectileCategory::TargetAoe,
-        projectile_sprite_indices: AnimationIndices { first: 9, last: 11 },
-        projectile_sprite_height: 96.,
-        projectile_sprite_width: 96.,
-        projectile_sprite_rows: 4,
-        projectile_sprite_cols: 3,
+        projectile_props: ProjectileProps {
+            projectile_sprite: "sprites/weapons/horse.png",
+            projectile_sprite_scale: 0.4,
+            projectile_category: ProjectileCategory::TargetAoe,
+            projectile_sprite_indices: AnimationIndices { first: 9, last: 11 },
+            projectile_sprite_height: 96.,
+            projectile_sprite_width: 96.,
+            projectile_sprite_rows: 4,
+            projectile_sprite_cols: 3,
+            projectile_aoe_radius: 20.,
+        },
     }
 }
 
@@ -157,19 +214,19 @@ pub fn get_weapon_sprite(
     weapon: &Weapon,
 ) -> (Handle<TextureAtlas>, ProjectileSpriteSheetAnimatable) {
     let animatable: ProjectileSpriteSheetAnimatable = ProjectileSpriteSheetAnimatable {
-        moving_anim_indices: weapon.projectile_sprite_indices.clone(),
+        moving_anim_indices: weapon.projectile_props.projectile_sprite_indices.clone(),
     };
 
-    let texture_handle = assets.load(weapon.projectile_sprite);
+    let texture_handle = assets.load(weapon.projectile_props.projectile_sprite);
 
     let texture_atlas = TextureAtlas::from_grid(
         texture_handle,
         Vec2::new(
-            weapon.projectile_sprite_width,
-            weapon.projectile_sprite_height,
+            weapon.projectile_props.projectile_sprite_width,
+            weapon.projectile_props.projectile_sprite_height,
         ),
-        weapon.projectile_sprite_cols,
-        weapon.projectile_sprite_rows,
+        weapon.projectile_props.projectile_sprite_cols,
+        weapon.projectile_props.projectile_sprite_rows,
         None,
         None,
     );

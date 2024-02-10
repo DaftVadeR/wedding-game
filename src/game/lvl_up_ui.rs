@@ -1,16 +1,12 @@
-// use crate::player::CharacterLife;
 use bevy::prelude::*;
 
 use super::{
     player::{CanLevel, Player},
-    weapons::get_available_weapons,
+    weapons::{get_available_weapons, Weapon},
 };
 use crate::{
     game::GamePlayState,
-    main_menu::{
-        BLACK, BLUE, BORDER_COLOR, DARK_PURPLE, LIGHT_BLUE, LIGHT_TEAL, PURPLE, PURPLISH, WHITE,
-    },
-    sprite::{Health, ProjectileCategory, Weapon},
+    main_menu::{BLACK, BLUE, BORDER_COLOR, LIGHT_BLUE, LIGHT_TEAL, PURPLISH, WHITE},
     GameState,
 };
 

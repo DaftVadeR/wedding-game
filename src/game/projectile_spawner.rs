@@ -2,16 +2,16 @@ use core::time::Duration;
 
 use bevy::prelude::*;
 
+use crate::game::weapons::Explosion;
 use crate::sprite::{
     get_translation_for_direction, AnimationIndices, AnimationTimer, DealsDamage, Direction,
-    Explosion, ExplosionSpriteSheetAnimatable, Health, Movable, Projectile, ProjectileCategory,
-    ProjectileSpriteSheetAnimatable, Weapon,
+    ExplosionSpriteSheetAnimatable, Health, Movable,
 };
 use crate::GameState;
 
 use super::player::{CanLevel, Player};
 use super::spawner::{Enemy, GivesExperience};
-use super::weapons::get_weapon_sprite;
+use super::weapons::{get_weapon_sprite, Projectile, ProjectileCategory, Weapon};
 use super::GamePlayState;
 
 pub struct ProjectileSpawnerPlugin;
@@ -64,7 +64,7 @@ fn spawn_weapon_projectiles(
             }
 
             // Only fire when tick timer finished
-            match weapon.projectile_category {
+            match weapon.projectile_props.projectile_category {
                 ProjectileCategory::ProjectileStraight => {
                     println!("Firing projectile straight");
                     spawn_simple_straight_projectile(
@@ -84,7 +84,16 @@ fn spawn_weapon_projectiles(
                     // Just use aoe attack with 0 distance
                 }
                 ProjectileCategory::TargetAoe => {
-                    //
+                    println!("Firing projectile aoe");
+                    spawn_target_aoe_projectile(
+                        weapon,
+                        transform.translation.clone(),
+                        get_translation_for_direction(movable.direction, transform.translation.z),
+                        &mut commands,
+                        &asset_server,
+                        &mut texture_atlases,
+                        &time,
+                    );
                 }
             }
         }
@@ -149,7 +158,12 @@ fn update_projectile_collisions(
                 .translation
                 .distance(projectile_transform.translation);
 
-            let collision_distance = projectile.width / 2.;
+            // IF normal projectile, no checking for aoe - just kill initial collided enemy and remove projectile entity on FIRST enemy hit.
+
+            // If aoe projectile, add distance from aoe radius to collision distance. Isn't simplified to be on all projectiles as fundamentally different in that the normal projectile goes on FIRST hit,
+            // but doesn't immediately disappear after the first collision - only after the loop has been finished do we despawn it.
+
+            let collision_distance = projectile.props.projectile_sprite_width / 2.;
 
             if distance < collision_distance {
                 // println!("COLLIDED {}", distance);
@@ -179,6 +193,7 @@ fn update_projectile_collisions(
     }
 }
 
+// Return true if lvled up
 fn add_player_experience(experience: u64, lvl: &mut CanLevel) -> bool {
     lvl.experience += experience;
 
@@ -257,7 +272,9 @@ pub fn update_projectiles(
         entity,
     ) in projectile_query.iter_mut()
     {
-        if projectile.category == ProjectileCategory::ProjectileStraight {
+        if projectile.props.projectile_category == ProjectileCategory::ProjectileStraight
+            || projectile.props.projectile_category == ProjectileCategory::TargetAoe
+        {
             let normal_speed_translation = time.delta_seconds() * projectile_movable.speed;
 
             let diagonal_speed_translation =
@@ -393,6 +410,10 @@ fn spawn_simple_straight_projectile(
 ) {
     let (texture_atlas_handle, animatable) = get_weapon_sprite(assets, texture_atlases, weapon);
 
+    // let normalized_direction = direction_translation.normalize();
+    // Get rotation based on direction, including custom direction
+    // let rotation_z = direction_translation.y.atan2(direction_translation.x);
+
     commands.spawn((
         SpriteSheetBundle {
             texture_atlas: texture_atlas_handle.clone(),
@@ -404,10 +425,11 @@ fn spawn_simple_straight_projectile(
                     z: 9.,
                 },
                 scale: Vec3::new(
-                    weapon.projectile_sprite_scale,
-                    weapon.projectile_sprite_scale,
+                    weapon.projectile_props.projectile_sprite_scale,
+                    weapon.projectile_props.projectile_sprite_scale,
                     1.,
                 ),
+                // rotation: Quat::from_rotation_x(180.),
                 ..Default::default()
             },
             ..default()
@@ -423,9 +445,61 @@ fn spawn_simple_straight_projectile(
             is_state_changed: true,
         },
         Projectile {
-            category: weapon.projectile_category.clone(),
-            width: weapon.projectile_sprite_width,
-            height: weapon.projectile_sprite_height,
+            props: weapon.projectile_props.clone(),
+        },
+        DealsDamage {
+            damage: 10.,
+            tick_timer: Timer::from_seconds(1., TimerMode::Once),
+        },
+    ));
+}
+
+fn spawn_target_aoe_projectile(
+    weapon: &Weapon,
+    origin: Vec3,
+    direction_translation: Vec3,
+    commands: &mut Commands,
+    assets: &Res<AssetServer>,
+    texture_atlases: &mut ResMut<Assets<TextureAtlas>>,
+    time: &Res<Time>,
+) {
+    let (texture_atlas_handle, animatable) = get_weapon_sprite(assets, texture_atlases, weapon);
+
+    commands.spawn((
+        SpriteSheetBundle {
+            texture_atlas: texture_atlas_handle.clone(),
+            sprite: TextureAtlasSprite::new(animatable.moving_anim_indices.first),
+            transform: Transform {
+                translation: Vec3 {
+                    x: origin.x,
+                    y: origin.y,
+                    z: 9.,
+                },
+                scale: Vec3::new(
+                    weapon.projectile_props.projectile_sprite_scale,
+                    weapon.projectile_props.projectile_sprite_scale,
+                    1.,
+                ),
+                // Get rotation from normalized direction translation
+                rotation: Quat::from_rotation_z(
+                    direction_translation.y.atan2(direction_translation.x)
+                        - std::f32::consts::FRAC_PI_2,
+                ), // ..Default::default(),
+            },
+            ..default()
+        },
+        AnimationTimer(Timer::from_seconds(0.1, TimerMode::Repeating)),
+        animatable.clone(),
+        Movable {
+            speed: 100.,
+            direction: Direction::Custom(direction_translation),
+            is_moving: true,
+            current_animation_indices: animatable.moving_anim_indices.clone(),
+            is_collided: false,
+            is_state_changed: true,
+        },
+        Projectile {
+            props: weapon.projectile_props.clone(),
         },
         DealsDamage {
             damage: 10.,

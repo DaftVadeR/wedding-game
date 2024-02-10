@@ -2,15 +2,14 @@ use crate::character_select::{
     get_character_sprite, SelectedCharacterState, PLAYER_HEIGHT, PLAYER_WIDTH,
 };
 use crate::corridor::player::{get_character_block, get_indices_for_movable_direction};
-use crate::sprite::{
-    AnimationTimer, Direction, Health, Movable, PlayerSpriteSheetAnimatable, Weapon,
-};
+use crate::sprite::{AnimationTimer, Direction, Health, Movable, PlayerSpriteSheetAnimatable};
 use crate::GameState;
 
 use bevy::prelude::*;
 
 use super::level::{MAP_MOVABLE_HEIGHT, MAP_MOVABLE_WIDTH};
 
+use super::weapons::Weapon;
 use super::GamePlayState;
 
 const PLAYER_SPEED_DEFAULT: f32 = 100.;
