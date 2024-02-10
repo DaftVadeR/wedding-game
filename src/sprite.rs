@@ -80,6 +80,8 @@ pub enum ProjectileState {
 #[derive(Component)]
 pub struct Projectile {
     pub category: ProjectileCategory,
+    pub width: f32,
+    pub height: f32,
 }
 
 #[derive(States, PartialEq, Eq, Default, Debug, Clone, Hash)]
@@ -109,8 +111,13 @@ pub struct Weapon {
     pub variant: WeaponsEnum,
     pub tick_timer: Timer,
     pub projectile_category: ProjectileCategory,
-    pub pic_sprite: &'static str,
-    pub scale: f32,
+    pub projectile_sprite: &'static str,
+    pub projectile_sprite_indices: AnimationIndices,
+    pub projectile_sprite_scale: f32,
+    pub projectile_sprite_height: f32,
+    pub projectile_sprite_width: f32,
+    pub projectile_sprite_rows: usize,
+    pub projectile_sprite_cols: usize,
 }
 
 pub fn get_translation_for_direction(direction: Direction, default_z: f32) -> Vec3 {

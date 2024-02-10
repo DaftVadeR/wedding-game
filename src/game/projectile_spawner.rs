@@ -11,6 +11,7 @@ use crate::GameState;
 
 use super::player::{CanLevel, Player};
 use super::spawner::{Enemy, GivesExperience};
+use super::weapons::get_weapon_sprite;
 use super::GamePlayState;
 
 pub struct ProjectileSpawnerPlugin;
@@ -90,8 +91,6 @@ fn spawn_weapon_projectiles(
     }
 }
 
-const COLLISION_DISTANCE: f32 = 10.;
-
 fn update_projectile_collisions(
     assets: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
@@ -101,7 +100,13 @@ fn update_projectile_collisions(
         (With<Enemy>, Without<Player>),
     >,
     mut projectile_query: Query<
-        (&Transform, &mut Movable, &mut DealsDamage, Entity),
+        (
+            &Transform,
+            &mut Movable,
+            &mut DealsDamage,
+            &Projectile,
+            Entity,
+        ),
         (With<Projectile>, Without<Player>),
     >,
     mut player_query: Query<&mut CanLevel, With<Player>>,
@@ -110,8 +115,13 @@ fn update_projectile_collisions(
 ) {
     let mut lvl = player_query.single_mut();
 
-    for (projectile_transform, mut projectile_movable, projectile_damage, projectile) in
-        projectile_query.iter_mut()
+    for (
+        projectile_transform,
+        mut projectile_movable,
+        projectile_damage,
+        projectile,
+        projectile_entity,
+    ) in projectile_query.iter_mut()
     {
         // let mut collided = false;
 
@@ -139,7 +149,9 @@ fn update_projectile_collisions(
                 .translation
                 .distance(projectile_transform.translation);
 
-            if distance < COLLISION_DISTANCE {
+            let collision_distance = projectile.width / 2.;
+
+            if distance < collision_distance {
                 // println!("COLLIDED {}", distance);
                 enemy_health.total -= projectile_damage.damage;
 
@@ -152,7 +164,7 @@ fn update_projectile_collisions(
                 }
 
                 projectile_movable.is_moving = false;
-                commands.entity(projectile).despawn_recursive();
+                commands.entity(projectile_entity).despawn_recursive();
 
                 spawn_explosion_at_position(
                     &assets,
@@ -379,39 +391,23 @@ fn spawn_simple_straight_projectile(
     texture_atlases: &mut ResMut<Assets<TextureAtlas>>,
     time: &Res<Time>,
 ) {
-    const PROJECTILE_HEIGHT: f32 = 64.;
-    const PROJECTILE_WIDTH: f32 = 64.;
-
-    let moving_anim_indices = AnimationIndices { first: 0, last: 2 };
-
-    let animatable: ProjectileSpriteSheetAnimatable = ProjectileSpriteSheetAnimatable {
-        moving_anim_indices: moving_anim_indices.clone(),
-    };
-
-    let texture_handle = assets.load(weapon.pic_sprite);
-
-    let texture_atlas = TextureAtlas::from_grid(
-        texture_handle,
-        Vec2::new(PROJECTILE_WIDTH, PROJECTILE_HEIGHT),
-        3,
-        1,
-        None,
-        None,
-    );
-
-    let texture_atlas_handle = texture_atlases.add(texture_atlas);
+    let (texture_atlas_handle, animatable) = get_weapon_sprite(assets, texture_atlases, weapon);
 
     commands.spawn((
         SpriteSheetBundle {
             texture_atlas: texture_atlas_handle.clone(),
-            sprite: TextureAtlasSprite::new(moving_anim_indices.first),
+            sprite: TextureAtlasSprite::new(animatable.moving_anim_indices.first),
             transform: Transform {
                 translation: Vec3 {
                     x: origin.x,
                     y: origin.y,
                     z: 9.,
                 },
-                scale: Vec3::new(weapon.scale, weapon.scale, 1.),
+                scale: Vec3::new(
+                    weapon.projectile_sprite_scale,
+                    weapon.projectile_sprite_scale,
+                    1.,
+                ),
                 ..Default::default()
             },
             ..default()
@@ -422,12 +418,14 @@ fn spawn_simple_straight_projectile(
             speed: 100.,
             direction: Direction::Custom(direction_translation),
             is_moving: true,
-            current_animation_indices: moving_anim_indices,
+            current_animation_indices: animatable.moving_anim_indices.clone(),
             is_collided: false,
             is_state_changed: true,
         },
         Projectile {
             category: weapon.projectile_category.clone(),
+            width: weapon.projectile_sprite_width,
+            height: weapon.projectile_sprite_height,
         },
         DealsDamage {
             damage: 10.,

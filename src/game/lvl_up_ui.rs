@@ -24,6 +24,7 @@ impl Plugin for LvlUpUiPlugin {
                 Update,
                 weapon_button_select.run_if(in_state(GamePlayState::LevelUp)),
             )
+            .add_systems(OnExit(GamePlayState::LevelUp), unload)
             .add_systems(OnExit(GameState::Gameplay), unload);
 
         // app.add_systems(OnEnterStartup, ui_setup)

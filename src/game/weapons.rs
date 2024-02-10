@@ -1,4 +1,6 @@
-use crate::sprite::{ProjectileCategory, Weapon};
+use crate::sprite::{
+    AnimationIndices, ProjectileCategory, ProjectileSpriteSheetAnimatable, Weapon,
+};
 use bevy::{prelude::*, utils::hashbrown::HashMap};
 use rand::{rngs::ThreadRng, Rng};
 use std::{process::exit, slice::Iter};
@@ -121,9 +123,14 @@ pub fn get_guitar_weapon() -> Weapon {
         desc: "It hits hard. But throwing guitars takes a while...".into(),
         tick_timer: Timer::from_seconds(1.5, TimerMode::Repeating),
         variant: WeaponsEnum::Guitar,
-        pic_sprite: "sprites/weapons/guitar_pixelated_small.png",
-        scale: 0.4,
+        projectile_sprite: "sprites/weapons/guitar_pixelated_small.png",
+        projectile_sprite_scale: 0.4,
         projectile_category: ProjectileCategory::ProjectileStraight,
+        projectile_sprite_indices: AnimationIndices { first: 0, last: 2 },
+        projectile_sprite_height: 64.,
+        projectile_sprite_width: 64.,
+        projectile_sprite_rows: 1,
+        projectile_sprite_cols: 3,
     }
 }
 
@@ -133,8 +140,41 @@ pub fn get_horse_weapon() -> Weapon {
         desc: "Devastating area of attack ability. \"Never underestimate horses.\" - Lisa".into(),
         tick_timer: Timer::from_seconds(2.5, TimerMode::Repeating),
         variant: WeaponsEnum::Horse,
+        projectile_sprite: "sprites/weapons/horse.png",
+        projectile_sprite_scale: 0.4,
         projectile_category: ProjectileCategory::TargetAoe,
-        pic_sprite: "sprites/weapons/horse.png",
-        scale: 0.4,
+        projectile_sprite_indices: AnimationIndices { first: 9, last: 11 },
+        projectile_sprite_height: 96.,
+        projectile_sprite_width: 96.,
+        projectile_sprite_rows: 4,
+        projectile_sprite_cols: 3,
     }
+}
+
+pub fn get_weapon_sprite(
+    assets: &Res<AssetServer>,
+    texture_atlases: &mut ResMut<Assets<TextureAtlas>>,
+    weapon: &Weapon,
+) -> (Handle<TextureAtlas>, ProjectileSpriteSheetAnimatable) {
+    let animatable: ProjectileSpriteSheetAnimatable = ProjectileSpriteSheetAnimatable {
+        moving_anim_indices: weapon.projectile_sprite_indices.clone(),
+    };
+
+    let texture_handle = assets.load(weapon.projectile_sprite);
+
+    let texture_atlas = TextureAtlas::from_grid(
+        texture_handle,
+        Vec2::new(
+            weapon.projectile_sprite_width,
+            weapon.projectile_sprite_height,
+        ),
+        weapon.projectile_sprite_cols,
+        weapon.projectile_sprite_rows,
+        None,
+        None,
+    );
+
+    let texture_atlas_handle = texture_atlases.add(texture_atlas);
+
+    (texture_atlas_handle, animatable)
 }
