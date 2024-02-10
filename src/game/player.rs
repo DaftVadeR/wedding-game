@@ -21,6 +21,7 @@ pub struct PlayerPlugin;
 pub struct CanLevel {
     pub experience: u64,
     pub level: u32,
+    pub level_step: u64,
 }
 
 #[derive(Component)]
@@ -224,6 +225,7 @@ fn setup(
         CanLevel {
             experience: 0,
             level: 1,
+            level_step: 100,
         },
         Movable {
             speed: PLAYER_SPEED_DEFAULT,

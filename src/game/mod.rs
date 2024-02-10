@@ -1,3 +1,15 @@
+mod level;
+mod player;
+mod projectile_spawner;
+// mod potato_anim;
+// mod potato_enemy;
+mod spawner;
+// mod potato_spawner;
+mod game_over;
+mod lvl_up_ui;
+mod ui;
+pub mod weapons;
+
 use bevy::app::Plugin;
 use bevy::audio::{PlaybackMode, Volume, VolumeLevel};
 use bevy::prelude::*;
@@ -8,20 +20,10 @@ use self::level::LevelPlugin;
 use self::player::PlayerPlugin;
 
 use self::game_over::GameOverPlugin;
+use self::lvl_up_ui::LvlUpUiPlugin;
 use self::projectile_spawner::ProjectileSpawnerPlugin;
 use self::spawner::EnemySpawnerPlugin;
 use self::ui::GameUiPlugin;
-
-mod level;
-mod player;
-mod projectile_spawner;
-// mod potato_anim;
-// mod potato_enemy;
-mod spawner;
-// mod potato_spawner;
-mod game_over;
-mod ui;
-pub mod weapons;
 
 pub struct GameplayPlugin;
 
@@ -43,6 +45,7 @@ pub struct MyMusic;
 impl Plugin for GameplayPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(GameUiPlugin)
+            .add_plugins(LvlUpUiPlugin)
             .add_plugins(LevelPlugin)
             .add_state::<GamePlayState>()
             .add_plugins(PlayerPlugin)

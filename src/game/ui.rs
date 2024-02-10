@@ -4,8 +4,8 @@ use bevy::prelude::*;
 use super::player::{CanLevel, Player};
 use crate::{
     game::GamePlayState,
-    main_menu::{BORDER_COLOR, DARK_PURPLE, LIGHT_TEAL, PURPLISH},
-    sprite::Health,
+    main_menu::{BLACK, BLUE, BORDER_COLOR, DARK_PURPLE, LIGHT_TEAL, PURPLE, PURPLISH},
+    sprite::{Health, ProjectileCategory, Weapon},
     GameState,
 };
 

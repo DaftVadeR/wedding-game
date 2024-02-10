@@ -20,6 +20,11 @@ enum EnemyType {
 }
 
 #[derive(Debug, Component)]
+pub struct GivesExperience {
+    pub experience: u64,
+}
+
+#[derive(Debug, Component)]
 pub struct Enemy;
 
 #[derive(Debug)]
@@ -120,6 +125,7 @@ fn check_for_spawns(
 
         spawn_enemies(
             num_enemies_per_spawn,
+            false,
             &mut commands,
             &asset_server,
             &mut texture_atlases,
@@ -133,7 +139,7 @@ fn check_for_spawns(
         println!("Stage finished");
         level_spawns.current_stage = level_spawns.current_stage + 1;
 
-        if level_spawns.current_stage > 4 && state.get() != &GamePlayState::Boss {
+        if level_spawns.current_stage > 5 && state.get() != &GamePlayState::Boss {
             next_state.set(GamePlayState::Boss);
         }
     }
@@ -156,6 +162,7 @@ fn spawn_boss(
 
         spawn_enemies(
             1,
+            true,
             &mut commands,
             &asset_server,
             &mut texture_atlases,
@@ -226,6 +233,46 @@ fn get_brown_mushroom_enemy(
     });
 
     let texture_handle = assets.load("sprites/enemy/mushroom_brown/sheet.png");
+    let texture_atlas = TextureAtlas::from_grid(
+        texture_handle,
+        Vec2::new(ENEMY_WIDTH, ENEMY_HEIGHT),
+        7,
+        8,
+        None,
+        None,
+    );
+
+    let texture_atlas_handle = texture_atlases.add(texture_atlas);
+
+    (
+        texture_atlas_handle,
+        animatable,
+        idle_animation_indices,
+        run_animation_indices,
+    )
+}
+
+fn get_blue_mushroom_enemy(
+    texture_atlases: &mut ResMut<Assets<TextureAtlas>>,
+    assets: &Res<AssetServer>,
+) -> (
+    Handle<TextureAtlas>,
+    EnemySpriteSheetAnimatable,
+    AnimationIndices,
+    AnimationIndices,
+) {
+    const ENEMY_WIDTH: f32 = 16.;
+    const ENEMY_HEIGHT: f32 = 16.;
+
+    let idle_animation_indices = AnimationIndices { first: 0, last: 5 };
+    let run_animation_indices = AnimationIndices { first: 8, last: 15 };
+
+    let animatable: EnemySpriteSheetAnimatable = (EnemySpriteSheetAnimatable {
+        idle_anim_indices: idle_animation_indices.clone(),
+        moving_anim_indices: run_animation_indices.clone(),
+    });
+
+    let texture_handle = assets.load("sprites/enemy/mushroom_blue/sheet.png");
     let texture_atlas = TextureAtlas::from_grid(
         texture_handle,
         Vec2::new(ENEMY_WIDTH, ENEMY_HEIGHT),
@@ -410,6 +457,7 @@ fn get_bat_enemy(
 
 fn spawn_enemies(
     num_enemies: usize,
+    is_boss: bool,
     commands: &mut Commands,
     assets: &Res<AssetServer>,
     texture_atlases: &mut ResMut<Assets<TextureAtlas>>,
@@ -417,7 +465,9 @@ fn spawn_enemies(
     level_spawns: &ResMut<LevelSpawns>,
 ) {
     let (texture_atlas_handle, animatable, idle_animation_indices, run_animation_indices) =
-        if level_spawns.current_stage == 1 {
+        if is_boss {
+            get_boss_enemy(texture_atlases, assets)
+        } else if level_spawns.current_stage == 1 {
             get_goblin_enemy(texture_atlases, assets)
         } else if level_spawns.current_stage == 2 {
             get_brown_mushroom_enemy(texture_atlases, assets)
@@ -426,7 +476,8 @@ fn spawn_enemies(
         } else if level_spawns.current_stage == 4 {
             get_bat_enemy(texture_atlases, assets)
         } else {
-            get_boss_enemy(texture_atlases, assets)
+            // 5
+            get_blue_mushroom_enemy(texture_atlases, assets)
         };
 
     let mut rng: ThreadRng = rand::thread_rng();
@@ -468,6 +519,7 @@ fn spawn_enemies(
             },
             Health { total: 10. },
             Enemy,
+            GivesExperience { experience: 50 },
             DealsDamage {
                 damage: (10. + (level_spawns.current_stage as f32)),
                 tick_timer: Timer::from_seconds(1., TimerMode::Once),

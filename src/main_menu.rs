@@ -46,6 +46,7 @@ pub const LIGHT_TEAL: Color = Color::rgb(0.584, 0.773, 0.675);
 
 pub const BORDER_COLOR: Color = Color::rgb(0.828, 0.606, 0.161);
 pub const BLACK: Color = Color::rgb(0., 0., 0.);
+pub const WHITE: Color = Color::rgb(1., 1., 1.);
 
 fn spawn_main_menu_ui(mut commands: Commands, assets: Res<AssetServer>) {
     let font = assets.load("fonts/spectral/spectral_medium.ttf");

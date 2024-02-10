@@ -4,13 +4,13 @@ use bevy::prelude::*;
 
 use crate::sprite::{
     get_translation_for_direction, AnimationIndices, AnimationTimer, DealsDamage, Direction,
-    Explosion, ExplosionSpriteSheetAnimatable, Health, Movable, Projectile,
-    ProjectileSpriteSheetAnimatable, Weapon, WeaponType,
+    Explosion, ExplosionSpriteSheetAnimatable, Health, Movable, Projectile, ProjectileCategory,
+    ProjectileSpriteSheetAnimatable, Weapon,
 };
 use crate::GameState;
 
-use super::player::Player;
-use super::spawner::Enemy;
+use super::player::{CanLevel, Player};
+use super::spawner::{Enemy, GivesExperience};
 use super::GamePlayState;
 
 pub struct ProjectileSpawnerPlugin;
@@ -63,8 +63,8 @@ fn spawn_weapon_projectiles(
             }
 
             // Only fire when tick timer finished
-            match weapon.weapon_type {
-                WeaponType::ProjectileStraight => {
+            match weapon.projectile_category {
+                ProjectileCategory::ProjectileStraight => {
                     println!("Firing projectile straight");
                     spawn_simple_straight_projectile(
                         weapon,
@@ -76,13 +76,13 @@ fn spawn_weapon_projectiles(
                         &time,
                     );
                 }
-                WeaponType::ProjectileHoming => {
+                ProjectileCategory::ProjectileHoming => {
                     // Alter projectile transform using normalized translation of enemy to player times speed
                 }
-                WeaponType::SelfAoe => {
+                ProjectileCategory::SelfAoe => {
                     // Just use aoe attack with 0 distance
                 }
-                WeaponType::TargetAoe => {
+                ProjectileCategory::TargetAoe => {
                     //
                 }
             }
@@ -96,13 +96,20 @@ fn update_projectile_collisions(
     assets: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
     mut commands: Commands,
-    mut enemy_query: Query<(&Transform, &mut Health, Entity), (With<Enemy>, Without<Player>)>,
+    mut enemy_query: Query<
+        (&Transform, &mut Health, &GivesExperience, Entity),
+        (With<Enemy>, Without<Player>),
+    >,
     mut projectile_query: Query<
         (&Transform, &mut Movable, &mut DealsDamage, Entity),
         (With<Projectile>, Without<Player>),
     >,
+    mut player_query: Query<&mut CanLevel, With<Player>>,
+    mut next_play_state: ResMut<NextState<GamePlayState>>,
     time: Res<Time>,
 ) {
+    let mut lvl = player_query.single_mut();
+
     for (projectile_transform, mut projectile_movable, projectile_damage, projectile) in
         projectile_query.iter_mut()
     {
@@ -127,17 +134,21 @@ fn update_projectile_collisions(
         //     collided = true;
         // }
 
-        for (enemy_transform, mut enemy_health, enemy) in enemy_query.iter_mut() {
+        for (enemy_transform, mut enemy_health, exp, enemy) in enemy_query.iter_mut() {
             let distance = enemy_transform
                 .translation
                 .distance(projectile_transform.translation);
 
             if distance < COLLISION_DISTANCE {
-                println!("COLLIDED {}", distance);
+                // println!("COLLIDED {}", distance);
                 enemy_health.total -= projectile_damage.damage;
 
                 if enemy_health.total <= 0. {
                     commands.entity(enemy).despawn_recursive();
+                    if add_player_experience(exp.experience, &mut lvl) {
+                        println!("Player leveled up to {}", lvl.level);
+                        next_play_state.set(GamePlayState::LevelUp);
+                    }
                 }
 
                 projectile_movable.is_moving = false;
@@ -154,6 +165,19 @@ fn update_projectile_collisions(
             }
         }
     }
+}
+
+fn add_player_experience(experience: u64, lvl: &mut CanLevel) -> bool {
+    lvl.experience += experience;
+
+    if lvl.experience >= lvl.level_step {
+        lvl.experience = lvl.experience - lvl.level_step;
+        lvl.level += 1;
+
+        return true;
+    }
+
+    return false;
 }
 
 fn spawn_explosion_at_position(
@@ -205,6 +229,7 @@ pub fn update_projectiles(
             &mut Movable,
             &mut TextureAtlasSprite,
             &mut AnimationTimer,
+            &Projectile,
             Entity,
         ),
         (With<Projectile>, Without<Player>),
@@ -216,31 +241,34 @@ pub fn update_projectiles(
         projectile_movable,
         mut projectile_sprite,
         mut projectile_anim_timer,
+        projectile,
         entity,
     ) in projectile_query.iter_mut()
     {
-        let normal_speed_translation = time.delta_seconds() * projectile_movable.speed;
+        if projectile.category == ProjectileCategory::ProjectileStraight {
+            let normal_speed_translation = time.delta_seconds() * projectile_movable.speed;
 
-        let diagonal_speed_translation =
-            (normal_speed_translation * normal_speed_translation * 2.).sqrt() / 2.;
+            let diagonal_speed_translation =
+                (normal_speed_translation * normal_speed_translation * 2.).sqrt() / 2.;
 
-        let normalized_translation_for_direction = get_translation_for_direction(
-            projectile_movable.direction,
-            projectile_transform.translation.z,
-        );
+            let normalized_translation_for_direction = get_translation_for_direction(
+                projectile_movable.direction,
+                projectile_transform.translation.z,
+            );
 
-        let selected_translation = if normalized_translation_for_direction.x != 0.
-            && normalized_translation_for_direction.y != 0.
-        {
-            diagonal_speed_translation
-        } else {
-            normal_speed_translation
-        };
+            let selected_translation = if normalized_translation_for_direction.x != 0.
+                && normalized_translation_for_direction.y != 0.
+            {
+                diagonal_speed_translation
+            } else {
+                normal_speed_translation
+            };
 
-        let moving = normalized_translation_for_direction * selected_translation;
+            let moving: Vec3 = normalized_translation_for_direction * selected_translation;
 
-        projectile_transform.translation.y += moving.y;
-        projectile_transform.translation.x += moving.x;
+            projectile_transform.translation.y += moving.y;
+            projectile_transform.translation.x += moving.x;
+        }
 
         projectile_anim_timer.tick(time.delta());
 
@@ -253,7 +281,7 @@ pub fn update_projectiles(
                 }
         }
 
-        if projectile_anim_timer.elapsed() > Duration::from_secs(10) {
+        if projectile_anim_timer.elapsed() > Duration::from_secs(20) {
             commands.entity(entity).despawn_recursive();
         }
 
@@ -398,7 +426,9 @@ fn spawn_simple_straight_projectile(
             is_collided: false,
             is_state_changed: true,
         },
-        Projectile,
+        Projectile {
+            category: weapon.projectile_category.clone(),
+        },
         DealsDamage {
             damage: 10.,
             tick_timer: Timer::from_seconds(1., TimerMode::Once),
@@ -408,14 +438,14 @@ fn spawn_simple_straight_projectile(
 
 pub fn unload(
     mut projectile_query: Query<Entity, With<Projectile>>,
-    mut collision_query: Query<Entity, With<Explosion>>,
+    mut explosion_query: Query<Entity, With<Explosion>>,
     // mut level_spawns: ResMut<LevelSpawns>,
     mut commands: Commands,
 ) {
     for entity in projectile_query.iter_mut() {
         commands.entity(entity).despawn_recursive();
     }
-    for entity in collision_query.iter_mut() {
+    for entity in explosion_query.iter_mut() {
         commands.entity(entity).despawn_recursive();
     }
 }

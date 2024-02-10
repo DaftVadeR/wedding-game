@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 
+use crate::game::weapons::WeaponsEnum;
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Direction {
     Custom(Vec3),
@@ -75,14 +77,10 @@ pub enum ProjectileState {
     Dispatched,
 }
 
-#[derive(PartialEq, Eq, Default, Debug, Clone, Hash)]
-pub enum ProjectileType {
-    #[default]
-    Guitar,
-}
-
 #[derive(Component)]
-pub struct Projectile;
+pub struct Projectile {
+    pub category: ProjectileCategory,
+}
 
 #[derive(States, PartialEq, Eq, Default, Debug, Clone, Hash)]
 pub enum ExplosionType {
@@ -96,7 +94,7 @@ pub struct Explosion {
 }
 
 #[derive(States, PartialEq, Eq, Default, Debug, Clone, Hash)]
-pub enum WeaponType {
+pub enum ProjectileCategory {
     #[default]
     ProjectileStraight,
     ProjectileHoming,
@@ -107,8 +105,10 @@ pub enum WeaponType {
 #[derive(Debug, Clone)]
 pub struct Weapon {
     pub name: String,
+    pub desc: String,
+    pub variant: WeaponsEnum,
     pub tick_timer: Timer,
-    pub weapon_type: WeaponType,
+    pub projectile_category: ProjectileCategory,
     pub pic_sprite: &'static str,
     pub scale: f32,
 }

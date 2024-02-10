@@ -1,4 +1,4 @@
-use crate::game::weapons::get_guitar_weapon;
+use crate::game::weapons::{get_guitar_weapon, get_horse_weapon};
 use crate::main_menu::{MyMusic, BLUE, BORDER_COLOR, DARK_PURPLE, LIGHT_TEAL, PURPLE};
 use crate::sprite::Weapon;
 use crate::util_fade::FadeState;
@@ -80,7 +80,7 @@ pub fn get_lisa_character() -> CharacterBlock {
         desc: "A friendly cleric who smites those not worthy of the grace of Paul Simon's greatness! A disarming smile and calm demeanor belie the terrifying badass within.".to_string(),
         pic_sprite: "sprites/player/lisa.png",
         selected_character_state: SelectedCharacterState::Lisa,
-        starting_weapon: get_guitar_weapon()
+        starting_weapon: get_horse_weapon()
     }
 }
 
