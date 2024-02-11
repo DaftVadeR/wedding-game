@@ -10,6 +10,7 @@ use crate::sprite::{
 
 use crate::GameState;
 use bevy::prelude::*;
+use bevy::reflect::TypeData;
 use bevy::time::Stopwatch;
 use rand::prelude::*;
 
@@ -25,7 +26,10 @@ pub struct GivesExperience {
 }
 
 #[derive(Debug, Component)]
-pub struct Enemy;
+pub struct Enemy {
+    width: f32,
+    height: f32,
+}
 
 #[derive(Debug)]
 pub struct SpawnWave {
@@ -180,6 +184,8 @@ fn get_basic_enemy(
     EnemySpriteSheetAnimatable,
     AnimationIndices,
     AnimationIndices,
+    f32,
+    f32,
 ) {
     const ENEMY_WIDTH: f32 = 10.;
     const ENEMY_HEIGHT: f32 = 11.;
@@ -209,6 +215,8 @@ fn get_basic_enemy(
         animatable,
         idle_animation_indices,
         run_animation_indices,
+        ENEMY_WIDTH,
+        ENEMY_HEIGHT,
     )
 }
 
@@ -220,6 +228,8 @@ fn get_brown_mushroom_enemy(
     EnemySpriteSheetAnimatable,
     AnimationIndices,
     AnimationIndices,
+    f32,
+    f32,
 ) {
     const ENEMY_WIDTH: f32 = 16.;
     const ENEMY_HEIGHT: f32 = 16.;
@@ -249,6 +259,8 @@ fn get_brown_mushroom_enemy(
         animatable,
         idle_animation_indices,
         run_animation_indices,
+        ENEMY_WIDTH,
+        ENEMY_HEIGHT,
     )
 }
 
@@ -260,6 +272,8 @@ fn get_blue_mushroom_enemy(
     EnemySpriteSheetAnimatable,
     AnimationIndices,
     AnimationIndices,
+    f32,
+    f32,
 ) {
     const ENEMY_WIDTH: f32 = 16.;
     const ENEMY_HEIGHT: f32 = 16.;
@@ -289,6 +303,8 @@ fn get_blue_mushroom_enemy(
         animatable,
         idle_animation_indices,
         run_animation_indices,
+        ENEMY_WIDTH,
+        ENEMY_HEIGHT,
     )
 }
 
@@ -300,6 +316,8 @@ fn get_slime_enemy(
     EnemySpriteSheetAnimatable,
     AnimationIndices,
     AnimationIndices,
+    f32,
+    f32,
 ) {
     const ENEMY_WIDTH: f32 = 16.;
     const ENEMY_HEIGHT: f32 = 16.;
@@ -329,6 +347,8 @@ fn get_slime_enemy(
         animatable,
         idle_animation_indices,
         run_animation_indices,
+        ENEMY_WIDTH,
+        ENEMY_HEIGHT,
     )
 }
 
@@ -340,6 +360,8 @@ fn get_goblin_enemy(
     EnemySpriteSheetAnimatable,
     AnimationIndices,
     AnimationIndices,
+    f32,
+    f32,
 ) {
     const ENEMY_WIDTH: f32 = 16.;
     const ENEMY_HEIGHT: f32 = 16.;
@@ -369,6 +391,8 @@ fn get_goblin_enemy(
         animatable,
         idle_animation_indices,
         run_animation_indices,
+        ENEMY_WIDTH,
+        ENEMY_HEIGHT,
     )
 }
 
@@ -380,6 +404,8 @@ fn get_boss_enemy(
     EnemySpriteSheetAnimatable,
     AnimationIndices,
     AnimationIndices,
+    f32,
+    f32,
 ) {
     const ENEMY_WIDTH: f32 = 94.;
     const ENEMY_HEIGHT: f32 = 108.;
@@ -412,6 +438,8 @@ fn get_boss_enemy(
         animatable,
         idle_animation_indices,
         run_animation_indices,
+        ENEMY_WIDTH,
+        ENEMY_HEIGHT,
     )
 }
 
@@ -423,6 +451,8 @@ fn get_bat_enemy(
     EnemySpriteSheetAnimatable,
     AnimationIndices,
     AnimationIndices,
+    f32,
+    f32,
 ) {
     const ENEMY_WIDTH: f32 = 16.;
     const ENEMY_HEIGHT: f32 = 16.;
@@ -452,6 +482,8 @@ fn get_bat_enemy(
         animatable,
         idle_animation_indices,
         run_animation_indices,
+        ENEMY_WIDTH,
+        ENEMY_HEIGHT,
     )
 }
 
@@ -464,21 +496,27 @@ fn spawn_enemies(
     player_position: Vec2,
     level_spawns: &ResMut<LevelSpawns>,
 ) {
-    let (texture_atlas_handle, animatable, idle_animation_indices, run_animation_indices) =
-        if is_boss {
-            get_boss_enemy(texture_atlases, assets)
-        } else if level_spawns.current_stage == 1 {
-            get_goblin_enemy(texture_atlases, assets)
-        } else if level_spawns.current_stage == 2 {
-            get_brown_mushroom_enemy(texture_atlases, assets)
-        } else if level_spawns.current_stage == 3 {
-            get_slime_enemy(texture_atlases, assets)
-        } else if level_spawns.current_stage == 4 {
-            get_bat_enemy(texture_atlases, assets)
-        } else {
-            // 5
-            get_blue_mushroom_enemy(texture_atlases, assets)
-        };
+    let (
+        texture_atlas_handle,
+        animatable,
+        idle_animation_indices,
+        run_animation_indices,
+        enemy_width,
+        enemy_height,
+    ) = if is_boss {
+        get_boss_enemy(texture_atlases, assets)
+    } else if level_spawns.current_stage == 1 {
+        get_goblin_enemy(texture_atlases, assets)
+    } else if level_spawns.current_stage == 2 {
+        get_brown_mushroom_enemy(texture_atlases, assets)
+    } else if level_spawns.current_stage == 3 {
+        get_slime_enemy(texture_atlases, assets)
+    } else if level_spawns.current_stage == 4 {
+        get_bat_enemy(texture_atlases, assets)
+    } else {
+        // 5
+        get_blue_mushroom_enemy(texture_atlases, assets)
+    };
 
     let mut rng: ThreadRng = rand::thread_rng();
 
@@ -518,7 +556,10 @@ fn spawn_enemies(
                 is_state_changed: true,
             },
             Health { total: 10. },
-            Enemy,
+            Enemy {
+                width: enemy_width,
+                height: enemy_height,
+            },
             GivesExperience { experience: 50 },
             DealsDamage {
                 damage: (10. + (level_spawns.current_stage as f32)),
@@ -546,8 +587,8 @@ pub fn get_indices_for_movable(
 fn update_enemy_collisions(
     mut player_query: Query<(&Transform, &mut Health), (With<Player>, Without<Enemy>)>,
     mut enemy_query_collision: Query<
-        (&Transform, &mut Movable, &mut DealsDamage, Entity),
-        (With<Enemy>, Without<Player>),
+        (&Transform, &mut Movable, &mut DealsDamage, &Enemy, Entity),
+        (Without<Player>),
     >,
     time: Res<Time>,
 ) {
@@ -570,8 +611,12 @@ fn update_enemy_collisions(
     let mut colliding_enemies: Vec<u32> = vec![];
 
     // Damage ticks are independent of collision state or movement. As long as in general vicinity, trigger damage tick.
-    for (enemy_transform, _, mut enemy_damage, ent_original) in enemy_query_collision.iter_mut() {
-        let mut collided = false;
+    for (enemy_transform, _, mut enemy_damage, enemy, ent_original) in
+        enemy_query_collision.iter_mut()
+    {
+        let collision_distance = enemy_transform.scale.x * enemy.width / 2.;
+
+        let mut collided: bool = false;
 
         enemy_damage.tick_timer.tick(time.delta());
 
@@ -580,7 +625,7 @@ fn update_enemy_collisions(
             .translation
             .distance(player_transform.translation);
 
-        if distance < COLLISION_DISTANCE {
+        if distance < collision_distance {
             println!("COLLIDED WITH PLAYER {}", distance);
             colliding_enemies.push(ent_original.index());
 
@@ -612,7 +657,7 @@ fn update_enemy_collisions(
         // }
     }
 
-    for (_, mut enemy_movable, _, ent) in enemy_query_collision.iter_mut() {
+    for (_, mut enemy_movable, _, _, ent) in enemy_query_collision.iter_mut() {
         let old_is_collided = enemy_movable.is_collided;
 
         if colliding_enemies.contains(&ent.index()) {
@@ -658,65 +703,61 @@ pub fn update_enemy_positions_and_sprites(
             entity,
         ) in enemy_query.iter_mut()
         {
-            if health.total <= 0. {
-                commands.entity(entity).despawn();
-            } else {
-                let old_z = enemy_transform.translation.z;
-                // Begin check to MOVE towards player
-                let old_is_moving = enemy_movable.is_moving;
+            let old_z = enemy_transform.translation.z;
+            // Begin check to MOVE towards player
+            let old_is_moving = enemy_movable.is_moving;
 
-                let normalized_translation =
-                    Vec3::normalize(player_transform.translation - enemy_transform.translation);
+            let normalized_translation =
+                Vec3::normalize(player_transform.translation - enemy_transform.translation);
 
-                let moving = normalized_translation * enemy_movable.speed * time.delta_seconds();
+            let moving = normalized_translation * enemy_movable.speed * time.delta_seconds();
 
-                if !enemy_movable.is_collided {
-                    enemy_transform.translation += moving;
-                    enemy_transform.translation.z = old_z; // Think its overriding it here, so make sure it stays same as from spawn
+            if !enemy_movable.is_collided {
+                enemy_transform.translation += moving;
+                enemy_transform.translation.z = old_z; // Think its overriding it here, so make sure it stays same as from spawn
 
-                    if normalized_translation.x > 0. {
-                        enemy_sprite.flip_x = false;
-                        enemy_movable.is_moving = true;
-                    } else if normalized_translation.x < 0. {
-                        enemy_sprite.flip_x = true;
-                        enemy_movable.is_moving = true;
-                    } else if normalized_translation.y > 0. || normalized_translation.y < 0. {
-                        enemy_movable.is_moving = true;
-                    } else {
-                        enemy_movable.is_moving = false;
-                    }
+                if normalized_translation.x > 0. {
+                    enemy_sprite.flip_x = false;
+                    enemy_movable.is_moving = true;
+                } else if normalized_translation.x < 0. {
+                    enemy_sprite.flip_x = true;
+                    enemy_movable.is_moving = true;
+                } else if normalized_translation.y > 0. || normalized_translation.y < 0. {
+                    enemy_movable.is_moving = true;
                 } else {
-                    println!("COLLIDED VALUE DETECTED - STOPPING");
                     enemy_movable.is_moving = false;
                 }
-
-                // println!("TRANSLATION {}", normalized_translation);
-
-                // IMPORTANT - need to compare with prior frame state to make sure not resetting anim unnecessary, but also
-                // makes sure to reset on EVERY movement or direction change.
-                if enemy_movable.is_state_changed || enemy_movable.is_moving != old_is_moving {
-                    let chosen: Option<AnimationIndices> =
-                        get_indices_for_movable(&mut enemy_movable, &enemy_animatable);
-
-                    if chosen.is_some() {
-                        enemy_movable.current_animation_indices = chosen.unwrap();
-                    }
-
-                    enemy_sprite.index = enemy_movable.current_animation_indices.first;
-                } else {
-                    enemy_timer.tick(time.delta());
-
-                    if enemy_timer.just_finished() {
-                        enemy_sprite.index =
-                            if enemy_sprite.index >= enemy_movable.current_animation_indices.last {
-                                enemy_movable.current_animation_indices.first
-                            } else {
-                                enemy_sprite.index + 1
-                            }
-                    }
-                }
-                enemy_movable.is_state_changed = false;
+            } else {
+                println!("COLLIDED VALUE DETECTED - STOPPING");
+                enemy_movable.is_moving = false;
             }
+
+            // println!("TRANSLATION {}", normalized_translation);
+
+            // IMPORTANT - need to compare with prior frame state to make sure not resetting anim unnecessary, but also
+            // makes sure to reset on EVERY movement or direction change.
+            if enemy_movable.is_state_changed || enemy_movable.is_moving != old_is_moving {
+                let chosen: Option<AnimationIndices> =
+                    get_indices_for_movable(&mut enemy_movable, &enemy_animatable);
+
+                if chosen.is_some() {
+                    enemy_movable.current_animation_indices = chosen.unwrap();
+                }
+
+                enemy_sprite.index = enemy_movable.current_animation_indices.first;
+            } else {
+                enemy_timer.tick(time.delta());
+
+                if enemy_timer.just_finished() {
+                    enemy_sprite.index =
+                        if enemy_sprite.index >= enemy_movable.current_animation_indices.last {
+                            enemy_movable.current_animation_indices.first
+                        } else {
+                            enemy_sprite.index + 1
+                        }
+                }
+            }
+            enemy_movable.is_state_changed = false;
         }
     }
 }

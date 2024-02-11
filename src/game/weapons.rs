@@ -10,7 +10,7 @@ pub enum WeaponsEnum {
 }
 
 impl WeaponsEnum {
-    const VALUES: [WeaponsEnum; 2] = [WeaponsEnum::Guitar, WeaponsEnum::Horse];
+    pub const VALUES: [WeaponsEnum; 2] = [WeaponsEnum::Guitar, WeaponsEnum::Horse];
 }
 
 #[derive(PartialEq, Eq, Default, Debug, Clone, Hash)]
@@ -32,6 +32,11 @@ pub enum ExplosionType {
 
 #[derive(Component, Default, Debug, Clone)]
 pub struct Explosion {
+    pub explosion_type: ExplosionType,
+}
+
+#[derive(Component, Default, Debug, Clone)]
+pub struct DamageEffect {
     pub explosion_type: ExplosionType,
 }
 
@@ -79,6 +84,10 @@ pub fn get_available_weapons(player_weapons: &Vec<Weapon>, num_weapons: usize) -
 
     // Get random weapon and add to array
     for i in 0..num_weapons {
+        if available_weapon_types.len() == 0 {
+            break;
+        }
+
         let random_index = rng.gen_range(0..player_weapon_types.len());
         let selected = available_weapon_types.get(random_index).expect("Can't get weapon type at index for some reason - possibly due to available_weapon_types mutation issue.");
         new_weapons.push(get_weapon_for_type(selected));
@@ -203,7 +212,7 @@ pub fn get_horse_weapon() -> Weapon {
             projectile_sprite_width: 96.,
             projectile_sprite_rows: 4,
             projectile_sprite_cols: 3,
-            projectile_aoe_radius: 20.,
+            projectile_aoe_radius: 80.,
         },
     }
 }

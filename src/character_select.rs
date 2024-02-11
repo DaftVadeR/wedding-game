@@ -19,8 +19,8 @@ pub enum CharacterSelectState {
 
 #[derive(States, PartialEq, Eq, Default, Debug, Clone, Hash)]
 pub enum SelectedCharacterState {
-    Ailsa,
     #[default]
+    Ailsa,
     Lisa,
 }
 

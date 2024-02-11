@@ -53,7 +53,7 @@ pub struct ProjectileSpriteSheetAnimatable {
 }
 
 #[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct ExplosionSpriteSheetAnimatable {
+pub struct EffectSpriteSheetAnimatable {
     pub anim_indices: AnimationIndices,
 }
 

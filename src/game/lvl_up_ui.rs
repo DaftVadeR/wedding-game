@@ -225,12 +225,17 @@ fn on_level_up(
     mut commands: Commands,
     assets: Res<AssetServer>,
     mut player_query: Query<(&Player, &CanLevel), With<Player>>,
+    mut next_play_state: ResMut<NextState<GamePlayState>>,
 ) {
     let (player, lvl) = player_query.single_mut();
 
-    let weapon_new = get_available_weapons(&player.weapons, 1);
+    let weapons_new = get_available_weapons(&player.weapons, 3);
 
     let mut btns: Vec<(ButtonBundle, WeaponButtonUI)> = vec![];
+
+    if weapons_new.len() == 0 {
+        next_play_state.set(GamePlayState::Started);
+    }
 
     commands
         .spawn(get_lvl_up_container())
@@ -242,7 +247,7 @@ fn on_level_up(
                     commands
                         .spawn(get_upgrades_container())
                         .with_children(|commands| {
-                            for weapon in weapon_new {
+                            for weapon in weapons_new {
                                 let btn = get_weapon_button(&weapon);
 
                                 commands.spawn(btn).with_children(|commands| {
