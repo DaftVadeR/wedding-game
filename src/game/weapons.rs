@@ -217,6 +217,26 @@ pub fn get_horse_weapon() -> Weapon {
     }
 }
 
+pub fn get_energy_weapon() -> Weapon {
+    Weapon {
+        name: "Negative vibes".into(),
+        desc: "By merely frowning, your most taxing anxieties are instantly transferred to the nearest enemy, dealing psychological damage. It's also great exercise for the face.".into(),
+        tick_timer: Timer::from_seconds(2.5, TimerMode::Repeating),
+        variant: WeaponsEnum::Horse,
+        projectile_props: ProjectileProps {
+            projectile_sprite: "sprites/weapons/energy.png",
+            projectile_sprite_scale: 0.4,
+            projectile_category: ProjectileCategory::TargetAoe,
+            projectile_sprite_indices: AnimationIndices { first: 9, last: 11 },
+            projectile_sprite_height: 96.,
+            projectile_sprite_width: 96.,
+            projectile_sprite_rows: 4,
+            projectile_sprite_cols: 3,
+            projectile_aoe_radius: 80.,
+        },
+    }
+}
+
 pub fn get_weapon_sprite(
     assets: &Res<AssetServer>,
     texture_atlases: &mut ResMut<Assets<TextureAtlas>>,
