@@ -5,13 +5,15 @@ use bevy::prelude::*;
 use crate::game::weapons::{Explosion, WeaponsEnum};
 use crate::sprite::{
     get_translation_for_direction, AnimationIndices, AnimationTimer, DealsDamage, Direction,
-    EffectSpriteSheetAnimatable, Health, Movable,
+    EffectSpriteSheetAnimatable, Health, Movable, ProjectileSpriteSheetAnimatable,
 };
 use crate::GameState;
 
 use super::player::{CanLevel, Player};
 use super::spawner::{Enemy, GivesExperience};
-use super::weapons::{get_weapon_sprite, DamageEffect, Projectile, ProjectileCategory, Weapon};
+use super::weapons::{
+    get_weapon_sprite, DamageEffect, Projectile, ProjectileAimMethod, ProjectileCategory, Weapon,
+};
 use super::GamePlayState;
 
 pub struct ProjectileSpawnerPlugin;
@@ -44,18 +46,132 @@ fn restart(mut commands: Commands, asset_server: Res<AssetServer>) {}
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {}
 
+fn spawn_projectile_for_aim_method(
+    weapon: &Weapon,
+    player_transform: &Transform,
+    player_movable: &Movable,
+    enemy_query: &Query<(&Transform, Entity), (With<Enemy>, Without<Player>)>,
+    asset_server: &Res<AssetServer>,
+    texture_atlases: &mut ResMut<Assets<TextureAtlas>>,
+    commands: &mut Commands,
+) {
+    // Only fire when tick timer finished
+    match weapon.projectile_props.projectile_aim_method {
+        ProjectileAimMethod::FollowPlayer => {
+            println!("Firing projectile straight");
+            spawn_sprite(
+                weapon,
+                get_translation_for_direction(
+                    player_movable.direction,
+                    player_transform.translation.z,
+                ),
+                &player_transform.translation,
+                texture_atlases,
+                &asset_server,
+                commands,
+            );
+
+            // spawn_simple_straight_projectile(
+            //     weapon,
+            //     player_transform.translation.clone(),
+            //     get_translation_for_direction(
+            //         player_movable.direction,
+            //         player_transform.translation.z,
+            //     ),
+            //     &mut commands,
+            //     &asset_server,
+            //     &mut texture_atlases,
+            //     &time,
+            // );
+        }
+
+        ProjectileAimMethod::AimAtEnemy | ProjectileAimMethod::FollowEnemy => {
+            // Alter projectile transform using normalized translation of enemy to player times speed
+            println!("Firing projectile aoe");
+            // Get closest enemy translation
+
+            let mut closest: Option<(Vec3, f32)> = None;
+
+            for (enemy_transform, enemy) in enemy_query.iter() {
+                let distance = enemy_transform
+                    .translation
+                    .distance(player_transform.translation);
+
+                if closest.is_none() || (closest.is_some() && distance < closest.unwrap().1) {
+                    closest = Some((enemy_transform.translation, distance));
+                }
+            }
+
+            match closest {
+                Some((vec, _)) => {
+                    let normalized_translation =
+                        Vec3::normalize(vec - player_transform.translation);
+
+                    // let direction_vec = Vec3::new(
+                    //     normalized_translation.x,
+                    //     normalized_translation.y,
+                    //     player_transform.translation.z,
+                    // );
+
+                    spawn_sprite(
+                        weapon,
+                        get_translation_for_direction(
+                            Direction::Custom(normalized_translation),
+                            player_transform.translation.z,
+                        ),
+                        &player_transform.translation,
+                        texture_atlases,
+                        &asset_server,
+                        commands,
+                    );
+                }
+                None => {
+                    println!("No closest enemy")
+                }
+            };
+        }
+        ProjectileAimMethod::FollowEnemy => {
+            // println!("Firing projectile aoe");
+            // spawn_sprite(
+            //     weapon,
+            //     get_translation_for_direction(
+            //         player_movable.direction,
+            //         player_transform.translation.z,
+            //     ),
+            //     &player_transform.translation,
+            //     &mut texture_atlases,
+            //     &asset_server,
+            //     &mut commands,
+            // );
+
+            // spawn_target_aoe_projectile(
+            //     weapon,
+            //     player_transform.translation.clone(),
+            //     get_translation_for_direction(
+            //         player_movable.direction,
+            //         player_transform.translation.z,
+            //     ),
+            //     &mut commands,
+            //     &asset_server,
+            //     &mut texture_atlases,
+            //     &time,
+            // );
+        }
+    }
+}
+
 fn spawn_weapon_projectiles(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
-    // enemy_weapon_query: Query<(&Weapon, &Player), (Without<Enemy>, With<Player>)>,
+    enemy_query: Query<(&Transform, Entity), (With<Enemy>, Without<Player>)>,
     mut player_weapon_query: Query<
         (&mut Player, &Transform, &Movable),
         (Without<Enemy>, With<Player>),
     >,
     time: Res<Time>,
 ) {
-    for (mut player, transform, movable) in player_weapon_query.iter_mut() {
+    for (mut player, player_transform, movable) in player_weapon_query.iter_mut() {
         for weapon in player.weapons.iter_mut() {
             weapon.tick_timer.tick(time.delta());
 
@@ -63,37 +179,21 @@ fn spawn_weapon_projectiles(
                 continue;
             }
 
-            // Only fire when tick timer finished
             match weapon.projectile_props.projectile_category {
-                ProjectileCategory::ProjectileStraight => {
-                    println!("Firing projectile straight");
-                    spawn_simple_straight_projectile(
+                ProjectileCategory::Projectile | ProjectileCategory::TargetAoe => {
+                    println!("Firing projectile towards enemy");
+                    spawn_projectile_for_aim_method(
                         weapon,
-                        transform.translation.clone(),
-                        get_translation_for_direction(movable.direction, transform.translation.z),
-                        &mut commands,
+                        &player_transform,
+                        &movable,
+                        &enemy_query,
                         &asset_server,
                         &mut texture_atlases,
-                        &time,
-                    );
-                }
-                ProjectileCategory::ProjectileHoming => {
-                    // Alter projectile transform using normalized translation of enemy to player times speed
-                }
-                ProjectileCategory::SelfAoe => {
-                    // Just use aoe attack with 0 distance
-                }
-                ProjectileCategory::TargetAoe => {
-                    println!("Firing projectile aoe");
-                    spawn_target_aoe_projectile(
-                        weapon,
-                        transform.translation.clone(),
-                        get_translation_for_direction(movable.direction, transform.translation.z),
                         &mut commands,
-                        &asset_server,
-                        &mut texture_atlases,
-                        &time,
                     );
+                }
+                _ => {
+                    println!("Fire alternate type");
                 }
             }
         }
@@ -105,9 +205,23 @@ struct DamageEvent {
     entity_id: u32,
     damage_type: DamageType,
 }
+
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum DamageType {
+    #[default]
     Normal,
     Aoe,
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ElementalDamageType {
+    #[default]
+    None,
+    Fire,
+    Water,
+    Earth,
+    Lightning,
+    Psychological,
 }
 
 fn update_projectile_collisions(
@@ -181,11 +295,11 @@ fn update_projectile_collisions(
 
             if distance < collision_distance {
                 // println!("COLLIDED {}", distance);
-                if projectile.props.projectile_category == ProjectileCategory::ProjectileStraight {
+                if projectile.props.projectile_category == ProjectileCategory::Projectile {
                     damage_events.push(DamageEvent {
                         damage: projectile_damage.damage,
                         entity_id: enemy.index(),
-                        damage_type: DamageType::Normal,
+                        damage_type: projectile.props.projectile_damage_type,
                     });
 
                     break;
@@ -399,31 +513,40 @@ pub fn update_projectiles(
         entity,
     ) in projectile_query.iter_mut()
     {
-        if projectile.props.projectile_category == ProjectileCategory::ProjectileStraight
-            || projectile.props.projectile_category == ProjectileCategory::TargetAoe
+        if projectile.props.projectile_aim_method == ProjectileAimMethod::FollowPlayer
+            || projectile.props.projectile_aim_method == ProjectileAimMethod::AimAtEnemy
         {
-            let normal_speed_translation = time.delta_seconds() * projectile_movable.speed;
-
-            let diagonal_speed_translation =
-                (normal_speed_translation * normal_speed_translation * 2.).sqrt() / 2.;
-
-            let normalized_translation_for_direction = get_translation_for_direction(
-                projectile_movable.direction,
-                projectile_transform.translation.z,
-            );
-
-            let selected_translation = if normalized_translation_for_direction.x != 0.
-                && normalized_translation_for_direction.y != 0.
+            if projectile.props.projectile_category == ProjectileCategory::Projectile
+                || projectile.props.projectile_category == ProjectileCategory::TargetAoe
             {
-                diagonal_speed_translation
-            } else {
-                normal_speed_translation
-            };
+                println!("Updating projectile");
+                let normal_speed_translation = time.delta_seconds() * projectile_movable.speed;
 
-            let moving: Vec3 = normalized_translation_for_direction * selected_translation;
+                let diagonal_speed_translation =
+                    (normal_speed_translation * normal_speed_translation * 2.).sqrt() / 2.;
 
-            projectile_transform.translation.y += moving.y;
-            projectile_transform.translation.x += moving.x;
+                let normalized_translation_for_direction = get_translation_for_direction(
+                    projectile_movable.direction,
+                    projectile_transform.translation.z,
+                );
+
+                let selected_translation = if normalized_translation_for_direction.x != 0.
+                    && normalized_translation_for_direction.y != 0.
+                {
+                    diagonal_speed_translation
+                } else {
+                    normal_speed_translation
+                };
+
+                let moving: Vec3 = normalized_translation_for_direction * selected_translation;
+
+                projectile_transform.translation.y += moving.y;
+                projectile_transform.translation.x += moving.x;
+            }
+        } else { // follow enemy - true homing
+             // TODO if not too complicated
+             // add enemy instance to projectile - use transform on entity to update projectile position so it homes in
+             // Delete enemy/transform from projectile if enemy despawned and add new one - might be easy way to do this in bevy.
         }
 
         projectile_anim_timer.tick(time.delta());
@@ -532,20 +655,100 @@ pub fn update_explosions_damage_effects(
 // ) {
 // }
 
-fn spawn_simple_straight_projectile(
+// fn spawn_simple_straight_projectile(
+//     weapon: &Weapon,
+//     origin: Vec3,
+//     direction_translation: Vec3,
+//     commands: &mut Commands,
+//     assets: &Res<AssetServer>,
+//     texture_atlases: &mut ResMut<Assets<TextureAtlas>>,
+//     time: &Res<Time>,
+// ) {
+//     let (texture_atlas_handle, animatable) = get_weapon_sprite(assets, texture_atlases, weapon);
+
+//     // let normalized_direction = direction_translation.normalize();
+//     // Get rotation based on direction, including custom direction
+//     // let rotation_z = direction_translation.y.atan2(direction_translation.x);
+
+//     commands.spawn((
+//         SpriteSheetBundle {
+//             texture_atlas: texture_atlas_handle.clone(),
+//             sprite: TextureAtlasSprite::new(animatable.moving_anim_indices.first),
+//             transform: Transform {
+//                 translation: Vec3 {
+//                     x: origin.x,
+//                     y: origin.y,
+//                     z: 9.,
+//                 },
+//                 scale: Vec3::new(
+//                     weapon.projectile_props.projectile_sprite_scale,
+//                     weapon.projectile_props.projectile_sprite_scale,
+//                     1.,
+//                 ),
+//                 // rotation: Quat::from_rotation_x(180.),
+//                 ..Default::default()
+//             },
+//             ..default()
+//         },
+//         AnimationTimer(Timer::from_seconds(0.1, TimerMode::Repeating)),
+//         animatable.clone(),
+//         Movable {
+//             speed: 100.,
+//             direction: Direction::Custom(direction_translation),
+//             is_moving: true,
+//             current_animation_indices: animatable.moving_anim_indices.clone(),
+//             is_collided: false,
+//             is_state_changed: true,
+//         },
+//         Projectile {
+//             props: weapon.projectile_props.clone(),
+//         },
+//         DealsDamage {
+//             damage: 10.,
+//             tick_timer: Timer::from_seconds(1., TimerMode::Once),
+//         },
+//     ));
+// }
+
+pub fn get_rotation_from_direction(direction: Vec3, offset: f32) -> Quat {
+    let rotation = direction.y.atan2(direction.x) - offset; // if facing right - 0. If facing up - 90 degrees, or std::f32::consts::FRAC_PI_2.
+
+    Quat::from_rotation_z(rotation)
+}
+
+// fn spawn_homing_projectile(
+//     weapon: &Weapon,
+//     origin: Vec3,
+//     direction_translation: Vec3,
+//     commands: &mut Commands,
+//     assets: &Res<AssetServer>,
+//     texture_atlases: &mut ResMut<Assets<TextureAtlas>>,
+//     time: &Res<Time>,
+// ) {
+//     spawn_sprite(
+//         &texture_atlas_handle,
+//         &animatable,
+//         &origin,
+//         &rotation_quat,
+//         &weapon,
+//         commands,
+//     );
+// }
+
+fn spawn_sprite(
     weapon: &Weapon,
-    origin: Vec3,
     direction_translation: Vec3,
-    commands: &mut Commands,
-    assets: &Res<AssetServer>,
+    origin: &Vec3,
     texture_atlases: &mut ResMut<Assets<TextureAtlas>>,
-    time: &Res<Time>,
+    assets: &Res<AssetServer>,
+    commands: &mut Commands,
 ) {
     let (texture_atlas_handle, animatable) = get_weapon_sprite(assets, texture_atlases, weapon);
 
-    // let normalized_direction = direction_translation.normalize();
-    // Get rotation based on direction, including custom direction
-    // let rotation_z = direction_translation.y.atan2(direction_translation.x);
+    let rotation_quat = get_rotation_from_direction(
+        direction_translation,
+        weapon.projectile_props.projectile_rotation_offset,
+    );
 
     commands.spawn((
         SpriteSheetBundle {
@@ -562,7 +765,8 @@ fn spawn_simple_straight_projectile(
                     weapon.projectile_props.projectile_sprite_scale,
                     1.,
                 ),
-                // rotation: Quat::from_rotation_x(180.),
+
+                rotation: rotation_quat,
                 ..Default::default()
             },
             ..default()
@@ -581,65 +785,108 @@ fn spawn_simple_straight_projectile(
             props: weapon.projectile_props.clone(),
         },
         DealsDamage {
-            damage: 10.,
-            tick_timer: Timer::from_seconds(1., TimerMode::Once),
+            damage: weapon.projectile_props.projectile_base_damage,
+            tick_timer: Timer::from_seconds(
+                weapon.projectile_props.projectile_fire_rate,
+                TimerMode::Once,
+            ),
         },
     ));
+
+    // commands.spawn((
+    //     SpriteSheetBundle {
+    //         texture_atlas: texture_atlas_handle.clone(),
+    //         sprite: TextureAtlasSprite::new(animatable.anim_indices.first),
+    //         transform: Transform {
+    //             translation: Vec3 {
+    //                 x: origin.x,
+    //                 y: origin.y,
+    //                 z: 9.,
+    //             },
+    //             scale: Vec3::new(*scale, *scale, 1.),
+    //             rotation: rotation.clone(),
+    //         },
+    //         ..default()
+    //     },
+    //     AnimationTimer(Timer::from_seconds(0.1, TimerMode::Repeating)),
+    //     animatable.clone(),
+    //     Movable {
+    //         speed: 100.,
+    //         direction: Direction::Custom(Vec3::new(0., 0., 0.)),
+    //         is_moving: true,
+    //         current_animation_indices: animatable.anim_indices.clone(),
+    //         is_collided: false,
+    //         is_state_changed: true,
+    //     },
+    //     Projectile {
+    //         props: Projectile::default(),
+    //     },
+    //     DealsDamage {
+    //         damage: 10.,
+    //         tick_timer: Timer::from_seconds(1., TimerMode::Once),
+    //     },
+    // ));
 }
 
-fn spawn_target_aoe_projectile(
-    weapon: &Weapon,
-    origin: Vec3,
-    direction_translation: Vec3,
-    commands: &mut Commands,
-    assets: &Res<AssetServer>,
-    texture_atlases: &mut ResMut<Assets<TextureAtlas>>,
-    time: &Res<Time>,
-) {
-    let (texture_atlas_handle, animatable) = get_weapon_sprite(assets, texture_atlases, weapon);
+// fn spawn_target_aoe_projectile(
+//     weapon: &Weapon,
+//     origin: Vec3,
+//     direction_translation: Vec3,
+//     commands: &mut Commands,
+//     assets: &Res<AssetServer>,
+//     texture_atlases: &mut ResMut<Assets<TextureAtlas>>,
+//     time: &Res<Time>,
+// ) {
+//     let (texture_atlas_handle, animatable) = get_weapon_sprite(assets, texture_atlases, weapon);
 
-    commands.spawn((
-        SpriteSheetBundle {
-            texture_atlas: texture_atlas_handle.clone(),
-            sprite: TextureAtlasSprite::new(animatable.moving_anim_indices.first),
-            transform: Transform {
-                translation: Vec3 {
-                    x: origin.x,
-                    y: origin.y,
-                    z: 9.,
-                },
-                scale: Vec3::new(
-                    weapon.projectile_props.projectile_sprite_scale,
-                    weapon.projectile_props.projectile_sprite_scale,
-                    1.,
-                ),
-                // Get rotation from normalized direction translation
-                rotation: Quat::from_rotation_z(
-                    direction_translation.y.atan2(direction_translation.x)
-                        - std::f32::consts::FRAC_PI_2,
-                ), // ..Default::default(),
-            },
-            ..default()
-        },
-        AnimationTimer(Timer::from_seconds(0.1, TimerMode::Repeating)),
-        animatable.clone(),
-        Movable {
-            speed: 100.,
-            direction: Direction::Custom(direction_translation),
-            is_moving: true,
-            current_animation_indices: animatable.moving_anim_indices.clone(),
-            is_collided: false,
-            is_state_changed: true,
-        },
-        Projectile {
-            props: weapon.projectile_props.clone(),
-        },
-        DealsDamage {
-            damage: 10.,
-            tick_timer: Timer::from_seconds(1., TimerMode::Once),
-        },
-    ));
-}
+//     let rotation = direction_translation.y.atan2(direction_translation.x)
+//         - weapon.projectile_props.projectile_rotation_offset; // std::f32::consts::FRAC_PI_2;
+
+//     println!("Rotation: {}", rotation);
+//     println!(
+//         "Rotation from_rotation: {}",
+//         Quat::from_rotation_z(rotation)
+//     );
+
+//     commands.spawn((
+//         SpriteSheetBundle {
+//             texture_atlas: texture_atlas_handle.clone(),
+//             sprite: TextureAtlasSprite::new(animatable.moving_anim_indices.first),
+//             transform: Transform {
+//                 translation: Vec3 {
+//                     x: origin.x,
+//                     y: origin.y,
+//                     z: 9.,
+//                 },
+//                 scale: Vec3::new(
+//                     weapon.projectile_props.projectile_sprite_scale,
+//                     weapon.projectile_props.projectile_sprite_scale,
+//                     1.,
+//                 ),
+//                 // Get rotation from normalized direction translation
+//                 rotation: Quat::from_rotation_z(rotation), // ..Default::default(),
+//             },
+//             ..default()
+//         },
+//         AnimationTimer(Timer::from_seconds(0.1, TimerMode::Repeating)),
+//         animatable.clone(),
+//         Movable {
+//             speed: 100.,
+//             direction: Direction::Custom(direction_translation),
+//             is_moving: true,
+//             current_animation_indices: animatable.moving_anim_indices.clone(),
+//             is_collided: false,
+//             is_state_changed: true,
+//         },
+//         Projectile {
+//             props: weapon.projectile_props.clone(),
+//         },
+//         DealsDamage {
+//             damage: 10.,
+//             tick_timer: Timer::from_seconds(1., TimerMode::Once),
+//         },
+//     ));
+// }
 
 pub fn unload(
     mut projectile_query: Query<Entity, With<Projectile>>,

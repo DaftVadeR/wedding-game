@@ -1,4 +1,4 @@
-use crate::game::weapons::{get_guitar_weapon, get_horse_weapon, Weapon};
+use crate::game::weapons::{get_energy_weapon, get_guitar_weapon, get_horse_weapon, Weapon};
 use crate::main_menu::{MyMusic, BLUE, BORDER_COLOR, DARK_PURPLE, LIGHT_TEAL, PURPLE};
 
 use crate::util_fade::FadeState;
@@ -19,8 +19,8 @@ pub enum CharacterSelectState {
 
 #[derive(States, PartialEq, Eq, Default, Debug, Clone, Hash)]
 pub enum SelectedCharacterState {
-    #[default]
     Ailsa,
+    #[default]
     Lisa,
 }
 
@@ -70,7 +70,8 @@ pub fn get_ailsa_character() -> CharacterBlock {
             .to_string(),
         pic_sprite: "sprites/player/ailsa.png",
         selected_character_state: SelectedCharacterState::Ailsa,
-        starting_weapon: get_guitar_weapon()
+        starting_weapon: get_guitar_weapon(),
+        // starting_weapon: get_energy_weapon()
     }
 }
 

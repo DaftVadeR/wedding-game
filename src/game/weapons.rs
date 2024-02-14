@@ -2,15 +2,22 @@ use crate::sprite::{AnimationIndices, ProjectileSpriteSheetAnimatable};
 use bevy::prelude::*;
 use rand::{rngs::ThreadRng, Rng};
 
+use super::projectile_spawner::{DamageType, ElementalDamageType};
+
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum WeaponsEnum {
     #[default]
     Guitar,
     Horse,
+    NegativVibes,
 }
 
 impl WeaponsEnum {
-    pub const VALUES: [WeaponsEnum; 2] = [WeaponsEnum::Guitar, WeaponsEnum::Horse];
+    pub const VALUES: [WeaponsEnum; 3] = [
+        WeaponsEnum::Guitar,
+        WeaponsEnum::Horse,
+        WeaponsEnum::NegativVibes,
+    ];
 }
 
 #[derive(PartialEq, Eq, Default, Debug, Clone, Hash)]
@@ -43,15 +50,26 @@ pub struct DamageEffect {
 #[derive(States, PartialEq, Eq, Default, Debug, Clone, Hash)]
 pub enum ProjectileCategory {
     #[default]
-    ProjectileStraight,
-    ProjectileHoming,
+    Projectile,
     SelfAoe,
     TargetAoe,
+}
+
+#[derive(States, PartialEq, Eq, Default, Debug, Clone, Hash)]
+pub enum ProjectileAimMethod {
+    #[default]
+    AimAtEnemy,    
+    FollowEnemy,
+    FollowPlayer
 }
 
 #[derive(Debug, Clone)]
 pub struct ProjectileProps {
     pub projectile_category: ProjectileCategory,
+    pub projectile_damage_type: DamageType,
+    pub projectile_base_damage: f32,
+    pub projectile_elemental_damage_type: ElementalDamageType,
+    pub projectile_aim_method: ProjectileAimMethod,
     pub projectile_sprite: &'static str,
     pub projectile_sprite_indices: AnimationIndices,
     pub projectile_sprite_scale: f32,
@@ -60,6 +78,8 @@ pub struct ProjectileProps {
     pub projectile_sprite_rows: usize,
     pub projectile_sprite_cols: usize,
     pub projectile_aoe_radius: f32,
+    pub projectile_rotation_offset: f32,
+    pub projectile_fire_rate: f32,
 }
 
 #[derive(Debug, Clone)]
@@ -158,6 +178,7 @@ fn get_weapon_for_type(weapon_type: &WeaponsEnum) -> Weapon {
     match weapon_type {
         WeaponsEnum::Guitar => get_guitar_weapon(),
         WeaponsEnum::Horse => get_horse_weapon(),
+        WeaponsEnum::NegativVibes => get_energy_weapon(),
     }
 }
 
@@ -186,13 +207,19 @@ pub fn get_guitar_weapon() -> Weapon {
             // Pass to projectile for duration of lifetime
             projectile_sprite: "sprites/weapons/guitar_pixelated_small.png",
             projectile_sprite_scale: 0.4,
-            projectile_category: ProjectileCategory::ProjectileStraight,
+            projectile_category: ProjectileCategory::Projectile,
+            projectile_aim_method: ProjectileAimMethod::AimAtEnemy,            
             projectile_sprite_indices: AnimationIndices { first: 0, last: 2 },
             projectile_sprite_height: 64.,
             projectile_sprite_width: 64.,
             projectile_sprite_rows: 1,
             projectile_sprite_cols: 3,
             projectile_aoe_radius: 0.,
+            projectile_damage_type: DamageType::Normal,
+            projectile_base_damage: 15.,
+            projectile_elemental_damage_type: ElementalDamageType::None,
+            projectile_rotation_offset: 0.,
+            projectile_fire_rate: 1.,
         },
     }
 }
@@ -206,13 +233,19 @@ pub fn get_horse_weapon() -> Weapon {
         projectile_props: ProjectileProps {
             projectile_sprite: "sprites/weapons/horse.png",
             projectile_sprite_scale: 0.4,
-            projectile_category: ProjectileCategory::TargetAoe,
+            projectile_category: ProjectileCategory::TargetAoe,            
+            projectile_aim_method: ProjectileAimMethod::AimAtEnemy,
             projectile_sprite_indices: AnimationIndices { first: 9, last: 11 },
             projectile_sprite_height: 96.,
             projectile_sprite_width: 96.,
             projectile_sprite_rows: 4,
             projectile_sprite_cols: 3,
             projectile_aoe_radius: 80.,
+            projectile_damage_type: DamageType::Normal,
+            projectile_base_damage: 5.,
+            projectile_elemental_damage_type: ElementalDamageType::None,
+            projectile_rotation_offset: std::f32::consts::FRAC_PI_2,
+            projectile_fire_rate: 2.,
         },
     }
 }
@@ -220,19 +253,25 @@ pub fn get_horse_weapon() -> Weapon {
 pub fn get_energy_weapon() -> Weapon {
     Weapon {
         name: "Negative vibes".into(),
-        desc: "By merely frowning, your most taxing anxieties are instantly transferred to the nearest enemy, dealing psychological damage. It's also great exercise for the face.".into(),
+        desc: "By merely frowning, your most taxing anxieties are instantly transferred to the nearest enemy dealing psychological damage. It's also great for toning the face.".into(),
         tick_timer: Timer::from_seconds(2.5, TimerMode::Repeating),
-        variant: WeaponsEnum::Horse,
+        variant: WeaponsEnum::NegativVibes,
         projectile_props: ProjectileProps {
             projectile_sprite: "sprites/weapons/energy.png",
             projectile_sprite_scale: 0.4,
-            projectile_category: ProjectileCategory::TargetAoe,
-            projectile_sprite_indices: AnimationIndices { first: 9, last: 11 },
-            projectile_sprite_height: 96.,
-            projectile_sprite_width: 96.,
-            projectile_sprite_rows: 4,
-            projectile_sprite_cols: 3,
-            projectile_aoe_radius: 80.,
+            projectile_category: ProjectileCategory::Projectile,
+            projectile_aim_method:ProjectileAimMethod::AimAtEnemy,
+            projectile_sprite_indices: AnimationIndices { first: 0, last: 8 },  
+            projectile_sprite_height: 128.,
+            projectile_sprite_width: 128.,
+            projectile_sprite_rows: 1,
+            projectile_sprite_cols: 9,
+            projectile_aoe_radius: 0.,
+            projectile_damage_type: DamageType::Normal,
+            projectile_base_damage: 15.,
+            projectile_elemental_damage_type: ElementalDamageType::Psychological,
+            projectile_rotation_offset: 0.,
+            projectile_fire_rate: 1.,
         },
     }
 }
