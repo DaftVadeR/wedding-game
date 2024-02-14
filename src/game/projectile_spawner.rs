@@ -3,6 +3,7 @@ use core::time::Duration;
 use bevy::prelude::*;
 use rand::Rng;
 
+use crate::game::level::{MAP_HEIGHT, MAP_WIDTH};
 use crate::game::weapons::{Explosion, WeaponsEnum};
 use crate::sprite::{
     get_translation_for_direction, AnimationIndices, AnimationTimer, Direction,
@@ -14,7 +15,8 @@ use crate::GameState;
 use super::player::{CanLevel, Player};
 use super::spawner::{Enemy, GivesExperience};
 use super::weapons::{
-    get_weapon_sprite, DamageEffect, Projectile, ProjectileAimMethod, ProjectileCategory, Weapon,
+    get_weapon_sprite, DamageEffect, Projectile, ProjectileAimMethod, ProjectileCategory,
+    ProjectileProps, Weapon,
 };
 use super::GamePlayState;
 
@@ -33,7 +35,7 @@ impl Plugin for ProjectileSpawnerPlugin {
                 Update,
                 (
                     update_projectiles,
-                    update_projectile_collisions,
+                    // update_projectile_collisions,
                     update_explosions_damage_effects,
                     spawn_weapon_projectiles,
                 )
@@ -51,6 +53,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {}
 fn get_closest_enemy(
     enemy_query: &Query<(&Transform, Entity), (With<Enemy>, Without<Player>)>,
     player_transform: &Transform,
+    projectile: &ProjectileProps,
 ) -> Option<(Vec3, f32)> {
     let mut closest: Option<(Vec3, f32)> = None;
 
@@ -66,7 +69,7 @@ fn get_closest_enemy(
 
     // Check if close enough. Don't want enemies off screen being hit
     if closest.is_some() {
-        let max_distance_from_player: f32 = 100.;
+        let max_distance_from_player: f32 = projectile.projectile_aim_range;
 
         let distance = closest.unwrap().0.distance(player_transform.translation);
 
@@ -82,8 +85,9 @@ fn get_random_enemy_position(
     rng: &mut rand::prelude::ThreadRng,
     enemy_query: &Query<(&Transform, Entity), (With<Enemy>, Without<Player>)>,
     player_transform: &Transform,
+    projectile: &ProjectileProps,
 ) -> Option<Vec3> {
-    let max_distance_from_player: f32 = 100.;
+    let max_distance_from_player: f32 = projectile.projectile_aim_range;
 
     let mut enemies_in_distance: Vec<(u32, Vec3)> = vec![];
 
@@ -121,20 +125,41 @@ fn get_random_enemy_position(
 fn get_random_nearby_position(
     rng: &mut rand::prelude::ThreadRng,
     player_transform: &Transform,
+    projectile: &ProjectileProps,
 ) -> Vec3 {
-    let random_x_initial: usize = rng.gen_range(0..200);
-    let random_y_initial: usize = rng.gen_range(0..100);
+    let rnd_x: f32 = rng.gen_range(0. ..projectile.projectile_aim_range);
+    let rnd_y: f32 = rng.gen_range(0. ..(projectile.projectile_aim_range * 0.75));
 
-    let is_negative_x = rng.gen_bool(0.5);
-    let is_negative_y = rng.gen_bool(0.5);
+    // negative and positive x+y axis.
+    let x_pos = player_transform.translation.x
+        + (if rng.gen_bool(0.5) {
+            rnd_x * -1.
+        } else {
+            rnd_x
+        });
+    let y_pos = player_transform.translation.y
+        + (if rng.gen_bool(0.5) {
+            rnd_y * -1.
+        } else {
+            rnd_y
+        });
 
-    let modifier_x = if is_negative_x { -1. } else { 1. };
-    let modifier_y = if is_negative_y { -1. } else { 1. };
+    let final_x_pos = x_pos.clamp(-1. * MAP_WIDTH / 2., MAP_WIDTH / 2.);
+    let final_y_pos = y_pos.clamp(-1. * MAP_HEIGHT / 2., MAP_HEIGHT / 2.);
 
-    let random_x = player_transform.translation.x - (modifier_x * random_x_initial as f32);
-    let random_y = player_transform.translation.y - (modifier_y * random_y_initial as f32);
+    // let random_x_initial: usize = rng.gen_range(0..400);
+    // let random_y_initial: usize = rng.gen_range(0..300);
 
-    let origin = Vec3::new(random_x, random_y, 9.); // 9 due to projectile assumption
+    // let is_negative_x = rng.gen_bool(0.5);
+    // let is_negative_y = rng.gen_bool(0.5);
+
+    // let modifier_x = if is_negative_x { -1. } else { 1. };
+    // let modifier_y = if is_negative_y { -1. } else { 1. };
+
+    // let random_x = player_transform.translation.x - (modifier_x * random_x_initial as f32);
+    // let random_y = player_transform.translation.y - (modifier_y * random_y_initial as f32);
+
+    let origin = Vec3::new(final_x_pos, final_y_pos, 9.); // 9 due to projectile assumption
 
     origin
 }
@@ -157,8 +182,13 @@ fn spawn_projectile_for_aim_method(
     // Only fire when tick timer finished
     match weapon.projectile_props.projectile_aim_method {
         ProjectileAimMethod::RandomEnemy => {
-            let random_enemy: Option<Vec3> =
-                get_random_enemy_position(rng, enemy_query, player_transform);
+            let random_enemy: Option<Vec3> = get_random_enemy_position(
+                rng,
+                enemy_query,
+                player_transform,
+                &weapon.projectile_props,
+            );
+
             direction = get_translation_for_direction(Direction::Custom(Vec3::new(0., 1., 0.)), 9.);
 
             match random_enemy {
@@ -166,7 +196,8 @@ fn spawn_projectile_for_aim_method(
                     origin = vec;
                 }
                 None => {
-                    origin = get_random_nearby_position(rng, player_transform);
+                    origin =
+                        get_random_nearby_position(rng, player_transform, &weapon.projectile_props);
                 }
             };
         }
@@ -176,7 +207,8 @@ fn spawn_projectile_for_aim_method(
             // Alter projectile transform using normalized translation of enemy to player times speed
             println!("Firing projectile aoe");
             // Get closest enemy translation
-            let closest = get_closest_enemy(enemy_query, player_transform);
+            let closest =
+                get_closest_enemy(enemy_query, player_transform, &weapon.projectile_props);
 
             match closest {
                 Some((vec, _)) => {
@@ -195,7 +227,7 @@ fn spawn_projectile_for_aim_method(
         }
         ProjectileAimMethod::Random => {
             // Uses the default direction but alters the origin transform
-            origin = get_random_nearby_position(rng, player_transform);
+            origin = get_random_nearby_position(rng, player_transform, &weapon.projectile_props);
             direction = get_translation_for_direction(Direction::Custom(Vec3::new(0., 1., 0.)), 9.);
         }
         // Otherwise, use defaults for both transform (player origin) and direction (player direction)
@@ -235,7 +267,8 @@ fn spawn_static_projectile(
             // Alter projectile transform using normalized translation of enemy to player times speed
             println!("Firing projectile aoe");
             // Get closest enemy translation
-            let closest = get_closest_enemy(enemy_query, player_transform);
+            let closest =
+                get_closest_enemy(enemy_query, player_transform, &weapon.projectile_props);
 
             match closest {
                 Some((vec, _)) => {
@@ -435,16 +468,19 @@ fn update_projectile_collisions(
                     // let damage_radius = projectile.props.projectile_aoe_radius + collision_distance;
 
                     for (enemy_transform, _, _, enemy) in enemy_query.iter() {
-                        let aoe_distance = enemy_transform
+                        let aoe_distance = projectile_transform
                             .translation
-                            .distance(projectile_transform.translation);
+                            .distance(enemy_transform.translation);
 
                         // IF normal projectile, no checking for aoe - just kill initial collided enemy and remove projectile entity on FIRST enemy hit.
 
                         // If aoe projectile, add distance from aoe radius to collision distance. Isn't simplified to be on all projectiles as fundamentally different in that the normal projectile goes on FIRST hit,
                         // but doesn't immediately disappear after the first collision - only after the loop has been finished do we despawn it.
 
-                        if aoe_distance < projectile.props.projectile_aoe_radius {
+                        if projectile.props.projectile_aoe_radius > 0.
+                            && aoe_distance < projectile.props.projectile_aoe_radius
+                        {
+                            println!("Collided with enemy due to {} distance from projectile being less than projectile_aoe_radius", aoe_distance);
                             damage_events.push(DamageEvent {
                                 damage: projectile_damage.damage
                                     * projectile.props.projectile_aoe_damage_scale,
@@ -493,23 +529,24 @@ fn update_projectile_collisions(
             for (enemy_transform, mut enemy_health, exp, enemy) in enemy_query.iter_mut() {
                 if enemy.index() == event.entity_id {
                     enemy_health.total -= event.damage;
+                    println!("applying dmg event {} {}", event.damage, enemy_health.total);
 
                     if enemy_health.total <= 0. {
-                        if add_player_experience(exp.experience, &mut lvl) {
-                            println!("Player leveled up to {}", lvl.level);
-                            if player.weapons.len() < WeaponsEnum::VALUES.len() {
-                                next_play_state.set(GamePlayState::LevelUp);
-                            }
-                        }
+                        // if add_player_experience(exp.experience, &mut lvl) {
+                        //     println!("Player leveled up to {}", lvl.level);
+                        //     if player.weapons.len() < WeaponsEnum::VALUES.len() {
+                        //         next_play_state.set(GamePlayState::LevelUp);
+                        //     }
+                        // }
 
-                        commands.entity(enemy).despawn_recursive();
+                        // commands.entity(enemy).despawn_recursive();
 
-                        spawn_explosion_at_position(
-                            &assets,
-                            &mut texture_atlases,
-                            &mut commands,
-                            &enemy_transform.translation,
-                        );
+                        // spawn_explosion_at_position(
+                        //     &assets,
+                        //     &mut texture_atlases,
+                        //     &mut commands,
+                        //     &enemy_transform.translation,
+                        // );
                     } else {
                         spawn_damage_effect_at_position(
                             &assets,
@@ -689,10 +726,14 @@ pub fn update_projectiles(
         if projectile_anim_timer.just_finished() {
             projectile_sprite.index =
                 if projectile_sprite.index >= projectile_movable.current_animation_indices.last {
+                    if projectile.props.projectile_category == ProjectileCategory::Instant {
+                        // despawn after animation finished - only fir instant weapons
+                        commands.entity(entity).despawn_recursive();
+                    }
                     projectile_movable.current_animation_indices.first
                 } else {
                     projectile_sprite.index + 1
-                }
+                };
         }
 
         if projectile_anim_timer.elapsed() > Duration::from_secs(20) {
@@ -888,7 +929,11 @@ fn spawn_sprite(
     commands.spawn((
         SpriteSheetBundle {
             texture_atlas: texture_atlas_handle.clone(),
-            sprite: TextureAtlasSprite::new(animatable.moving_anim_indices.first),
+            sprite: TextureAtlasSprite {
+                index: animatable.moving_anim_indices.first,
+                anchor: weapon.projectile_props.projectile_sprite_anchor,
+                ..default()
+            },
             transform: Transform {
                 translation: Vec3 {
                     x: origin.x,
@@ -904,6 +949,7 @@ fn spawn_sprite(
                 rotation: rotation_quat,
                 ..Default::default()
             },
+
             ..default()
         },
         AnimationTimer(Timer::from_seconds(0.1, TimerMode::Repeating)),

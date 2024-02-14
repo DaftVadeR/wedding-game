@@ -74,6 +74,7 @@ pub struct ProjectileProps {
     pub projectile_category: ProjectileCategory,
     pub projectile_damage_type: DamageType,
     pub projectile_base_damage: f32,
+    pub projectile_aim_range: f32,
     pub projectile_aim_method: ProjectileAimMethod,
     pub projectile_sprite: &'static str,
     pub projectile_sprite_indices: AnimationIndices,
@@ -85,6 +86,8 @@ pub struct ProjectileProps {
     pub projectile_aoe_radius: f32,
     pub projectile_aoe_damage_scale: f32,
     pub projectile_rotation_offset: f32,
+    pub projectile_sprite_anchor: bevy::sprite::Anchor,
+    
 }
 
 #[derive(Debug, Clone)]
@@ -226,6 +229,8 @@ pub fn get_guitar_weapon() -> Weapon {
             projectile_base_damage: 15.,
             projectile_rotation_offset: 0.,
             projectile_aoe_damage_scale: 0.5,
+            projectile_aim_range: 150.,
+            projectile_sprite_anchor: bevy::sprite::Anchor::Center
         },
     }
 }
@@ -240,17 +245,19 @@ pub fn get_horse_weapon() -> Weapon {
             projectile_sprite: "sprites/weapons/horse.png",
             projectile_sprite_scale: 0.4,
             projectile_category: ProjectileCategory::Projectile,            
-            projectile_aim_method: ProjectileAimMethod::NearestEnemy,
+            projectile_aim_method: ProjectileAimMethod::PlayerDirection,
             projectile_sprite_indices: AnimationIndices { first: 9, last: 11 },
             projectile_sprite_height: 96.,
             projectile_sprite_width: 96.,
             projectile_sprite_rows: 4,
             projectile_sprite_cols: 3,
-            projectile_aoe_radius: 80.,
+            projectile_aoe_radius: 50.,
             projectile_damage_type: DamageType::Normal,
             projectile_base_damage: 5.,
             projectile_rotation_offset: std::f32::consts::FRAC_PI_2,
             projectile_aoe_damage_scale: 0.5,
+            projectile_aim_range: 150.,
+            projectile_sprite_anchor: bevy::sprite::Anchor::Center
         },
     }
 }
@@ -276,6 +283,8 @@ pub fn get_energy_weapon() -> Weapon {
             projectile_base_damage: 10.,
             projectile_rotation_offset: 0.,
             projectile_aoe_damage_scale: 0.5,
+            projectile_aim_range: 150.,
+            projectile_sprite_anchor: bevy::sprite::Anchor::Center
         },
     }
 }
@@ -284,23 +293,25 @@ pub fn get_lightning_weapon() -> Weapon {
     Weapon {
         name: "Spaghetti Lightning".into(),
         desc: "The Spaghetti Monster has this strange tendency to get involved at the wrong times. And, incidentally, a strange fascination with Zeus. This is the result.".into(),
-        tick_timer: Timer::from_seconds(5., TimerMode::Repeating),
+        tick_timer: Timer::from_seconds(3., TimerMode::Repeating),
         variant: WeaponsEnum::Lightning,
         projectile_props: ProjectileProps {
             projectile_sprite: "sprites/weapons/thunder.png",
-            projectile_sprite_scale: 0.4,
+            projectile_sprite_scale: 0.8,
             projectile_category: ProjectileCategory::Instant,
-            projectile_aim_method:ProjectileAimMethod::Random,
+            projectile_aim_method:ProjectileAimMethod::RandomEnemy,
             projectile_sprite_indices: AnimationIndices { first: 0, last: 7 },  
             projectile_sprite_height: 256.,
             projectile_sprite_width: 64.,
             projectile_sprite_rows: 1,
-            projectile_sprite_cols: 9,
+            projectile_sprite_cols: 8,
             projectile_aoe_radius: 0.,
             projectile_damage_type: DamageType::Lightning,
             projectile_base_damage: 5.,
             projectile_rotation_offset: std::f32::consts::FRAC_PI_2,
             projectile_aoe_damage_scale: 0.,
+            projectile_aim_range: 150.,
+            projectile_sprite_anchor: bevy::sprite::Anchor::BottomCenter,
         },
     }
 }
@@ -326,6 +337,8 @@ pub fn get_splash_weapon() -> Weapon {
             projectile_base_damage: 5.,
             projectile_rotation_offset: std::f32::consts::FRAC_PI_2,
             projectile_aoe_damage_scale: 0.,
+            projectile_aim_range: 150.,
+            projectile_sprite_anchor: bevy::sprite::Anchor::BottomCenter,
         },
     }
 }

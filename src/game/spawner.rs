@@ -524,11 +524,25 @@ fn spawn_enemies(
 
     for i in 0..num_enemies {
         let rnd_x: f32 = rng.gen_range(0. ..SPAWN_DISTANCE);
-        let rnd_y: f32 = SPAWN_DISTANCE - rnd_x;
-        let switch: bool = rng.gen_bool(0.5); // Randomly use negative number so enemies spawn on both
-                                              // negative and positive x+y axis.
-        let x_pos = player_position.x + if switch { rnd_x * -1. } else { rnd_x };
-        let y_pos = player_position.y + if switch { rnd_y * -1. } else { rnd_y };
+        let rnd_y: f32 = if SPAWN_DISTANCE - rnd_x > 0. {
+            ((SPAWN_DISTANCE - rnd_x) * 0.75).clamp(0., SPAWN_DISTANCE * 0.75)
+        } else {
+            0.
+        };
+
+        // negative and positive x+y axis.
+        let x_pos = player_position.x
+            + if rng.gen_bool(0.5) {
+                rnd_x * -1.
+            } else {
+                rnd_x
+            };
+        let y_pos = player_position.y
+            + if rng.gen_bool(0.5) {
+                rnd_y * -1.
+            } else {
+                rnd_y
+            };
 
         let final_x_pos = x_pos.clamp(-1. * MAP_WIDTH / 2., MAP_WIDTH / 2.);
         let final_y_pos = y_pos.clamp(-1. * MAP_HEIGHT / 2., MAP_HEIGHT / 2.);
@@ -560,7 +574,7 @@ fn spawn_enemies(
                 width: enemy_width,
                 height: enemy_height,
             },
-            GivesExperience { experience: 50 },
+            GivesExperience { experience: 20 },
             DealsDamage {
                 damage: (10. + (level_spawns.current_stage as f32)),
                 tick_timer: Timer::from_seconds(1., TimerMode::Once),
