@@ -2,7 +2,7 @@ use crate::sprite::{AnimationIndices, ProjectileSpriteSheetAnimatable};
 use bevy::prelude::*;
 use rand::{rngs::ThreadRng, Rng};
 
-use super::projectile_spawner::{DamageType, ElementalDamageType};
+use super::projectile_spawner::{DamageType};
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum WeaponsEnum {
@@ -10,13 +10,17 @@ pub enum WeaponsEnum {
     Guitar,
     Horse,
     NegativVibes,
+    Lightning,
+    Splash,
 }
 
 impl WeaponsEnum {
-    pub const VALUES: [WeaponsEnum; 3] = [
+    pub const VALUES: [WeaponsEnum; 5] = [
         WeaponsEnum::Guitar,
         WeaponsEnum::Horse,
         WeaponsEnum::NegativVibes,
+        WeaponsEnum::Lightning,
+        WeaponsEnum::Splash,
     ];
 }
 
@@ -51,16 +55,18 @@ pub struct DamageEffect {
 pub enum ProjectileCategory {
     #[default]
     Projectile,
-    SelfAoe,
-    TargetAoe,
+    ProjectileAoe,
+    Instant
 }
 
 #[derive(States, PartialEq, Eq, Default, Debug, Clone, Hash)]
 pub enum ProjectileAimMethod {
     #[default]
-    AimAtEnemy,    
-    FollowEnemy,
-    FollowPlayer
+    NearestEnemy, 
+    OnSelf,
+    PlayerDirection,
+    RandomEnemy,
+    Random
 }
 
 #[derive(Debug, Clone)]
@@ -68,7 +74,6 @@ pub struct ProjectileProps {
     pub projectile_category: ProjectileCategory,
     pub projectile_damage_type: DamageType,
     pub projectile_base_damage: f32,
-    pub projectile_elemental_damage_type: ElementalDamageType,
     pub projectile_aim_method: ProjectileAimMethod,
     pub projectile_sprite: &'static str,
     pub projectile_sprite_indices: AnimationIndices,
@@ -78,8 +83,8 @@ pub struct ProjectileProps {
     pub projectile_sprite_rows: usize,
     pub projectile_sprite_cols: usize,
     pub projectile_aoe_radius: f32,
+    pub projectile_aoe_damage_scale: f32,
     pub projectile_rotation_offset: f32,
-    pub projectile_fire_rate: f32,
 }
 
 #[derive(Debug, Clone)]
@@ -108,7 +113,7 @@ pub fn get_available_weapons(player_weapons: &Vec<Weapon>, num_weapons: usize) -
             break;
         }
 
-        let random_index = rng.gen_range(0..player_weapon_types.len());
+        let random_index = rng.gen_range(0..available_weapon_types.len());
         let selected = available_weapon_types.get(random_index).expect("Can't get weapon type at index for some reason - possibly due to available_weapon_types mutation issue.");
         new_weapons.push(get_weapon_for_type(selected));
 
@@ -179,6 +184,8 @@ fn get_weapon_for_type(weapon_type: &WeaponsEnum) -> Weapon {
         WeaponsEnum::Guitar => get_guitar_weapon(),
         WeaponsEnum::Horse => get_horse_weapon(),
         WeaponsEnum::NegativVibes => get_energy_weapon(),
+        WeaponsEnum::Lightning => get_lightning_weapon(),
+        WeaponsEnum::Splash => get_splash_weapon(),
     }
 }
 
@@ -208,7 +215,7 @@ pub fn get_guitar_weapon() -> Weapon {
             projectile_sprite: "sprites/weapons/guitar_pixelated_small.png",
             projectile_sprite_scale: 0.4,
             projectile_category: ProjectileCategory::Projectile,
-            projectile_aim_method: ProjectileAimMethod::AimAtEnemy,            
+            projectile_aim_method: ProjectileAimMethod::NearestEnemy,            
             projectile_sprite_indices: AnimationIndices { first: 0, last: 2 },
             projectile_sprite_height: 64.,
             projectile_sprite_width: 64.,
@@ -217,9 +224,8 @@ pub fn get_guitar_weapon() -> Weapon {
             projectile_aoe_radius: 0.,
             projectile_damage_type: DamageType::Normal,
             projectile_base_damage: 15.,
-            projectile_elemental_damage_type: ElementalDamageType::None,
             projectile_rotation_offset: 0.,
-            projectile_fire_rate: 1.,
+            projectile_aoe_damage_scale: 0.5,
         },
     }
 }
@@ -227,14 +233,14 @@ pub fn get_guitar_weapon() -> Weapon {
 pub fn get_horse_weapon() -> Weapon {
     Weapon {
         name: "Flatulent Horses".into(),
-        desc: "Devastating area of attack ability. \"Never underestimate horses.\" - Lisa".into(),
+        desc: "Devastating area of attack ability due to, you guessed it, flatulence. \n\n\"Never underestimate horses.\" - Lisa".into(),
         tick_timer: Timer::from_seconds(2.5, TimerMode::Repeating),
         variant: WeaponsEnum::Horse,
         projectile_props: ProjectileProps {
             projectile_sprite: "sprites/weapons/horse.png",
             projectile_sprite_scale: 0.4,
-            projectile_category: ProjectileCategory::TargetAoe,            
-            projectile_aim_method: ProjectileAimMethod::AimAtEnemy,
+            projectile_category: ProjectileCategory::Projectile,            
+            projectile_aim_method: ProjectileAimMethod::NearestEnemy,
             projectile_sprite_indices: AnimationIndices { first: 9, last: 11 },
             projectile_sprite_height: 96.,
             projectile_sprite_width: 96.,
@@ -243,9 +249,8 @@ pub fn get_horse_weapon() -> Weapon {
             projectile_aoe_radius: 80.,
             projectile_damage_type: DamageType::Normal,
             projectile_base_damage: 5.,
-            projectile_elemental_damage_type: ElementalDamageType::None,
             projectile_rotation_offset: std::f32::consts::FRAC_PI_2,
-            projectile_fire_rate: 2.,
+            projectile_aoe_damage_scale: 0.5,
         },
     }
 }
@@ -253,25 +258,74 @@ pub fn get_horse_weapon() -> Weapon {
 pub fn get_energy_weapon() -> Weapon {
     Weapon {
         name: "Negative vibes".into(),
-        desc: "By merely frowning, your most taxing anxieties are instantly transferred to the nearest enemy dealing psychological damage. It's also great for toning the face.".into(),
-        tick_timer: Timer::from_seconds(2.5, TimerMode::Repeating),
+        desc: "By merely frowning, your most taxing anxieties are instantly transferred to the nearest enemy, dealing psychological damage. It's also great for toning the face :)".into(),
+        tick_timer: Timer::from_seconds(1.5, TimerMode::Repeating),
         variant: WeaponsEnum::NegativVibes,
         projectile_props: ProjectileProps {
             projectile_sprite: "sprites/weapons/energy.png",
             projectile_sprite_scale: 0.4,
             projectile_category: ProjectileCategory::Projectile,
-            projectile_aim_method:ProjectileAimMethod::AimAtEnemy,
+            projectile_aim_method:ProjectileAimMethod::NearestEnemy,
             projectile_sprite_indices: AnimationIndices { first: 0, last: 8 },  
             projectile_sprite_height: 128.,
             projectile_sprite_width: 128.,
             projectile_sprite_rows: 1,
             projectile_sprite_cols: 9,
             projectile_aoe_radius: 0.,
-            projectile_damage_type: DamageType::Normal,
-            projectile_base_damage: 15.,
-            projectile_elemental_damage_type: ElementalDamageType::Psychological,
+            projectile_damage_type: DamageType::Psychological,
+            projectile_base_damage: 10.,
             projectile_rotation_offset: 0.,
-            projectile_fire_rate: 1.,
+            projectile_aoe_damage_scale: 0.5,
+        },
+    }
+}
+
+pub fn get_lightning_weapon() -> Weapon {
+    Weapon {
+        name: "Spaghetti Lightning".into(),
+        desc: "The Spaghetti Monster has this strange tendency to get involved at the wrong times. And, incidentally, a strange fascination with Zeus. This is the result.".into(),
+        tick_timer: Timer::from_seconds(5., TimerMode::Repeating),
+        variant: WeaponsEnum::Lightning,
+        projectile_props: ProjectileProps {
+            projectile_sprite: "sprites/weapons/thunder.png",
+            projectile_sprite_scale: 0.4,
+            projectile_category: ProjectileCategory::Instant,
+            projectile_aim_method:ProjectileAimMethod::Random,
+            projectile_sprite_indices: AnimationIndices { first: 0, last: 7 },  
+            projectile_sprite_height: 256.,
+            projectile_sprite_width: 64.,
+            projectile_sprite_rows: 1,
+            projectile_sprite_cols: 9,
+            projectile_aoe_radius: 0.,
+            projectile_damage_type: DamageType::Lightning,
+            projectile_base_damage: 5.,
+            projectile_rotation_offset: std::f32::consts::FRAC_PI_2,
+            projectile_aoe_damage_scale: 0.,
+        },
+    }
+}
+
+pub fn get_splash_weapon() -> Weapon {
+    Weapon {
+        name: "Big splash".into(),
+        desc: "Before the fight started, you snuck onto the lawn and overclocked the water sprinklers. This skill lets you take advantage of your preparedness.".into(),
+        tick_timer: Timer::from_seconds(10., TimerMode::Repeating),
+        variant: WeaponsEnum::Splash,
+        projectile_props: ProjectileProps {
+            projectile_sprite: "sprites/weapons/splash.png",
+            projectile_sprite_scale: 0.6,
+            projectile_category: ProjectileCategory::Instant,
+            projectile_aim_method:ProjectileAimMethod::RandomEnemy,
+            projectile_sprite_indices: AnimationIndices { first: 0, last: 19 },  
+            projectile_sprite_height: 77.,
+            projectile_sprite_width: 66.,
+            projectile_sprite_rows: 4,
+            projectile_sprite_cols: 5,
+            projectile_aoe_radius: 10.,
+            projectile_damage_type: DamageType::Water,
+            projectile_base_damage: 5.,
+            projectile_rotation_offset: std::f32::consts::FRAC_PI_2,
+            projectile_aoe_damage_scale: 0.,
         },
     }
 }

@@ -1,11 +1,13 @@
 use core::time::Duration;
 
 use bevy::prelude::*;
+use rand::Rng;
 
 use crate::game::weapons::{Explosion, WeaponsEnum};
 use crate::sprite::{
-    get_translation_for_direction, AnimationIndices, AnimationTimer, DealsDamage, Direction,
-    EffectSpriteSheetAnimatable, Health, Movable, ProjectileSpriteSheetAnimatable,
+    get_translation_for_direction, AnimationIndices, AnimationTimer, Direction,
+    EffectSpriteSheetAnimatable, Health, Movable, ProjectileDealsDamage,
+    ProjectileSpriteSheetAnimatable,
 };
 use crate::GameState;
 
@@ -46,83 +48,144 @@ fn restart(mut commands: Commands, asset_server: Res<AssetServer>) {}
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {}
 
+fn get_closest_enemy(
+    enemy_query: &Query<(&Transform, Entity), (With<Enemy>, Without<Player>)>,
+    player_transform: &Transform,
+) -> Option<(Vec3, f32)> {
+    let mut closest: Option<(Vec3, f32)> = None;
+
+    for (enemy_transform, enemy) in enemy_query.iter() {
+        let distance = enemy_transform
+            .translation
+            .distance(player_transform.translation);
+
+        if closest.is_none() || (closest.is_some() && distance < closest.unwrap().1) {
+            closest = Some((enemy_transform.translation, distance));
+        }
+    }
+
+    // Check if close enough. Don't want enemies off screen being hit
+    if closest.is_some() {
+        let max_distance_from_player: f32 = 100.;
+
+        let distance = closest.unwrap().0.distance(player_transform.translation);
+
+        if distance > max_distance_from_player {
+            return None;
+        }
+    }
+
+    closest
+}
+
+fn get_random_enemy_position(
+    rng: &mut rand::prelude::ThreadRng,
+    enemy_query: &Query<(&Transform, Entity), (With<Enemy>, Without<Player>)>,
+    player_transform: &Transform,
+) -> Option<Vec3> {
+    let max_distance_from_player: f32 = 100.;
+
+    let mut enemies_in_distance: Vec<(u32, Vec3)> = vec![];
+
+    for (enemy_transform, entity) in enemy_query.iter() {
+        let distance = enemy_transform
+            .translation
+            .distance(player_transform.translation);
+
+        if distance < max_distance_from_player {
+            enemies_in_distance.push((entity.index(), enemy_transform.translation));
+        }
+    }
+
+    if enemies_in_distance.len() == 0 {
+        return None;
+    }
+
+    let random_index = rng.gen_range(0..enemies_in_distance.len());
+
+    Some(enemies_in_distance[random_index].1)
+
+    // for eb_query in 0..(enemies_in_distance.len() / 2) {
+
+    //     random_enemy = match enemy_query.iter().nth(random_index) {
+    //         Some((transform, _)) => Some(transform.translation.clone()),
+    //         None => {
+    //             continue;
+    //         }
+    //     }
+    // }
+
+    // random_enemy
+}
+
+fn get_random_nearby_position(
+    rng: &mut rand::prelude::ThreadRng,
+    player_transform: &Transform,
+) -> Vec3 {
+    let random_x_initial: usize = rng.gen_range(0..200);
+    let random_y_initial: usize = rng.gen_range(0..100);
+
+    let is_negative_x = rng.gen_bool(0.5);
+    let is_negative_y = rng.gen_bool(0.5);
+
+    let modifier_x = if is_negative_x { -1. } else { 1. };
+    let modifier_y = if is_negative_y { -1. } else { 1. };
+
+    let random_x = player_transform.translation.x - (modifier_x * random_x_initial as f32);
+    let random_y = player_transform.translation.y - (modifier_y * random_y_initial as f32);
+
+    let origin = Vec3::new(random_x, random_y, 9.); // 9 due to projectile assumption
+
+    origin
+}
+
 fn spawn_projectile_for_aim_method(
     weapon: &Weapon,
     player_transform: &Transform,
     player_movable: &Movable,
     enemy_query: &Query<(&Transform, Entity), (With<Enemy>, Without<Player>)>,
+    rng: &mut rand::prelude::ThreadRng,
     asset_server: &Res<AssetServer>,
     texture_atlases: &mut ResMut<Assets<TextureAtlas>>,
     commands: &mut Commands,
 ) {
+    // Default to player facing direction - ProjectileAimMethod::PlayerFacing
+    let mut origin: Vec3 = player_transform.translation.clone();
+    let mut direction: Vec3 =
+        get_translation_for_direction(player_movable.direction, player_transform.translation.z);
+
     // Only fire when tick timer finished
     match weapon.projectile_props.projectile_aim_method {
-        ProjectileAimMethod::FollowPlayer => {
-            println!("Firing projectile straight");
-            spawn_sprite(
-                weapon,
-                get_translation_for_direction(
-                    player_movable.direction,
-                    player_transform.translation.z,
-                ),
-                &player_transform.translation,
-                texture_atlases,
-                &asset_server,
-                commands,
-            );
+        ProjectileAimMethod::RandomEnemy => {
+            let random_enemy: Option<Vec3> =
+                get_random_enemy_position(rng, enemy_query, player_transform);
+            direction = get_translation_for_direction(Direction::Custom(Vec3::new(0., 1., 0.)), 9.);
 
-            // spawn_simple_straight_projectile(
-            //     weapon,
-            //     player_transform.translation.clone(),
-            //     get_translation_for_direction(
-            //         player_movable.direction,
-            //         player_transform.translation.z,
-            //     ),
-            //     &mut commands,
-            //     &asset_server,
-            //     &mut texture_atlases,
-            //     &time,
-            // );
+            match random_enemy {
+                Some(vec) => {
+                    origin = vec;
+                }
+                None => {
+                    origin = get_random_nearby_position(rng, player_transform);
+                }
+            };
         }
+        ProjectileAimMethod::NearestEnemy => {
+            // Uses the default origin transform but alters the direction to point at nearest enemy
 
-        ProjectileAimMethod::AimAtEnemy | ProjectileAimMethod::FollowEnemy => {
             // Alter projectile transform using normalized translation of enemy to player times speed
             println!("Firing projectile aoe");
             // Get closest enemy translation
-
-            let mut closest: Option<(Vec3, f32)> = None;
-
-            for (enemy_transform, enemy) in enemy_query.iter() {
-                let distance = enemy_transform
-                    .translation
-                    .distance(player_transform.translation);
-
-                if closest.is_none() || (closest.is_some() && distance < closest.unwrap().1) {
-                    closest = Some((enemy_transform.translation, distance));
-                }
-            }
+            let closest = get_closest_enemy(enemy_query, player_transform);
 
             match closest {
                 Some((vec, _)) => {
                     let normalized_translation =
                         Vec3::normalize(vec - player_transform.translation);
 
-                    // let direction_vec = Vec3::new(
-                    //     normalized_translation.x,
-                    //     normalized_translation.y,
-                    //     player_transform.translation.z,
-                    // );
-
-                    spawn_sprite(
-                        weapon,
-                        get_translation_for_direction(
-                            Direction::Custom(normalized_translation),
-                            player_transform.translation.z,
-                        ),
-                        &player_transform.translation,
-                        texture_atlases,
-                        &asset_server,
-                        commands,
+                    direction = get_translation_for_direction(
+                        Direction::Custom(normalized_translation),
+                        9.,
                     );
                 }
                 None => {
@@ -130,34 +193,94 @@ fn spawn_projectile_for_aim_method(
                 }
             };
         }
-        ProjectileAimMethod::FollowEnemy => {
-            // println!("Firing projectile aoe");
-            // spawn_sprite(
-            //     weapon,
-            //     get_translation_for_direction(
-            //         player_movable.direction,
-            //         player_transform.translation.z,
-            //     ),
-            //     &player_transform.translation,
-            //     &mut texture_atlases,
-            //     &asset_server,
-            //     &mut commands,
-            // );
-
-            // spawn_target_aoe_projectile(
-            //     weapon,
-            //     player_transform.translation.clone(),
-            //     get_translation_for_direction(
-            //         player_movable.direction,
-            //         player_transform.translation.z,
-            //     ),
-            //     &mut commands,
-            //     &asset_server,
-            //     &mut texture_atlases,
-            //     &time,
-            // );
+        ProjectileAimMethod::Random => {
+            // Uses the default direction but alters the origin transform
+            origin = get_random_nearby_position(rng, player_transform);
+            direction = get_translation_for_direction(Direction::Custom(Vec3::new(0., 1., 0.)), 9.);
         }
+        // Otherwise, use defaults for both transform (player origin) and direction (player direction)
+        _ => {}
     }
+
+    spawn_sprite(
+        weapon,
+        direction,
+        origin,
+        texture_atlases,
+        &asset_server,
+        commands,
+    );
+}
+
+fn spawn_static_projectile(
+    weapon: &Weapon,
+    player_transform: &Transform,
+    player_movable: &Movable,
+    enemy_query: &Query<(&Transform, Entity), (With<Enemy>, Without<Player>)>,
+    rng: &mut rand::prelude::ThreadRng,
+    asset_server: &Res<AssetServer>,
+    texture_atlases: &mut ResMut<Assets<TextureAtlas>>,
+    commands: &mut Commands,
+) {
+    // Default to player facing direction - ProjectileAimMethod::PlayerFacing
+    let mut origin: Vec3 = player_transform.translation.clone();
+    let mut direction: Vec3 =
+        get_translation_for_direction(player_movable.direction, player_transform.translation.z);
+
+    // Only fire when tick timer finished
+    match weapon.projectile_props.projectile_aim_method {
+        ProjectileAimMethod::NearestEnemy => {
+            // Uses the default origin transform but alters the direction to point at nearest enemy
+
+            // Alter projectile transform using normalized translation of enemy to player times speed
+            println!("Firing projectile aoe");
+            // Get closest enemy translation
+            let closest = get_closest_enemy(enemy_query, player_transform);
+
+            match closest {
+                Some((vec, _)) => {
+                    let normalized_translation =
+                        Vec3::normalize(vec - player_transform.translation);
+
+                    direction = get_translation_for_direction(
+                        Direction::Custom(normalized_translation),
+                        player_transform.translation.z,
+                    );
+                }
+                None => {
+                    println!("No closest enemy")
+                }
+            };
+        }
+        ProjectileAimMethod::Random => {
+            // Uses the default direction but alters the origin transform
+            let random_x: usize = rng.gen_range(0..900);
+            let random_y: usize = rng.gen_range(0..900);
+
+            let is_negative_x = rng.gen_bool(0.5);
+            let is_negative_y = rng.gen_bool(0.5);
+
+            let modifier_x = if is_negative_x { -1. } else { 1. };
+            let modifier_y = if is_negative_y { -1. } else { 1. };
+
+            origin = Vec3::new(
+                modifier_x * random_x as f32,
+                modifier_y * random_y as f32,
+                9.,
+            );
+        }
+        // Otherwise, use defaults for both transform (player origin) and direction (player direction)
+        _ => {}
+    }
+
+    spawn_sprite(
+        weapon,
+        direction,
+        origin,
+        texture_atlases,
+        &asset_server,
+        commands,
+    );
 }
 
 fn spawn_weapon_projectiles(
@@ -171,6 +294,8 @@ fn spawn_weapon_projectiles(
     >,
     time: Res<Time>,
 ) {
+    let mut rng = rand::thread_rng();
+
     for (mut player, player_transform, movable) in player_weapon_query.iter_mut() {
         for weapon in player.weapons.iter_mut() {
             weapon.tick_timer.tick(time.delta());
@@ -180,18 +305,35 @@ fn spawn_weapon_projectiles(
             }
 
             match weapon.projectile_props.projectile_category {
-                ProjectileCategory::Projectile | ProjectileCategory::TargetAoe => {
+                ProjectileCategory::Projectile
+                | ProjectileCategory::ProjectileAoe
+                | ProjectileCategory::Instant => {
                     println!("Firing projectile towards enemy");
                     spawn_projectile_for_aim_method(
                         weapon,
                         &player_transform,
                         &movable,
                         &enemy_query,
+                        &mut rng,
                         &asset_server,
                         &mut texture_atlases,
                         &mut commands,
                     );
                 }
+                //
+                // ProjectileCategory::Instant => {
+                //     println!("Firing projectile towards enemy");
+                //     spawn_projectile_for_aim_method(
+                //         weapon,
+                //         &player_transform,
+                //         &movable,
+                //         &enemy_query,
+                //         &mut rng,
+                //         &asset_server,
+                //         &mut texture_atlases,
+                //         &mut commands,
+                //     );
+                // }
                 _ => {
                     println!("Fire alternate type");
                 }
@@ -210,13 +352,6 @@ struct DamageEvent {
 pub enum DamageType {
     #[default]
     Normal,
-    Aoe,
-}
-
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum ElementalDamageType {
-    #[default]
-    None,
     Fire,
     Water,
     Earth,
@@ -236,7 +371,7 @@ fn update_projectile_collisions(
         (
             &Transform,
             &mut Movable,
-            &mut DealsDamage,
+            &mut ProjectileDealsDamage,
             &Projectile,
             Entity,
         ),
@@ -293,17 +428,9 @@ fn update_projectile_collisions(
                 * projectile.props.projectile_sprite_scale)
                 / 2.;
 
+            // Collided
             if distance < collision_distance {
-                // println!("COLLIDED {}", distance);
-                if projectile.props.projectile_category == ProjectileCategory::Projectile {
-                    damage_events.push(DamageEvent {
-                        damage: projectile_damage.damage,
-                        entity_id: enemy.index(),
-                        damage_type: projectile.props.projectile_damage_type,
-                    });
-
-                    break;
-                } else if projectile.props.projectile_category == ProjectileCategory::TargetAoe {
+                if projectile.props.projectile_category == ProjectileCategory::ProjectileAoe {
                     // Collided with an enemy. Now trigger damage to everything in area.
                     // let damage_radius = projectile.props.projectile_aoe_radius + collision_distance;
 
@@ -319,9 +446,10 @@ fn update_projectile_collisions(
 
                         if aoe_distance < projectile.props.projectile_aoe_radius {
                             damage_events.push(DamageEvent {
-                                damage: projectile_damage.damage,
+                                damage: projectile_damage.damage
+                                    * projectile.props.projectile_aoe_damage_scale,
                                 entity_id: enemy.index(),
-                                damage_type: DamageType::Aoe,
+                                damage_type: projectile.props.projectile_damage_type,
                             });
                         }
                     }
@@ -351,6 +479,12 @@ fn update_projectile_collisions(
                 }
 
                 break;
+            } else {
+                damage_events.push(DamageEvent {
+                    damage: projectile_damage.damage,
+                    entity_id: enemy.index(),
+                    damage_type: projectile.props.projectile_damage_type,
+                });
             }
         }
 
@@ -513,11 +647,11 @@ pub fn update_projectiles(
         entity,
     ) in projectile_query.iter_mut()
     {
-        if projectile.props.projectile_aim_method == ProjectileAimMethod::FollowPlayer
-            || projectile.props.projectile_aim_method == ProjectileAimMethod::AimAtEnemy
+        if projectile.props.projectile_aim_method == ProjectileAimMethod::PlayerDirection
+            || projectile.props.projectile_aim_method == ProjectileAimMethod::NearestEnemy
         {
             if projectile.props.projectile_category == ProjectileCategory::Projectile
-                || projectile.props.projectile_category == ProjectileCategory::TargetAoe
+                || projectile.props.projectile_category == ProjectileCategory::ProjectileAoe
             {
                 println!("Updating projectile");
                 let normal_speed_translation = time.delta_seconds() * projectile_movable.speed;
@@ -543,10 +677,11 @@ pub fn update_projectiles(
                 projectile_transform.translation.y += moving.y;
                 projectile_transform.translation.x += moving.x;
             }
-        } else { // follow enemy - true homing
-             // TODO if not too complicated
-             // add enemy instance to projectile - use transform on entity to update projectile position so it homes in
-             // Delete enemy/transform from projectile if enemy despawned and add new one - might be easy way to do this in bevy.
+        } else {
+            // follow enemy - true homing
+            // TODO if not too complicated
+            // add enemy instance to projectile - use transform on entity to update projectile position so it homes in
+            // Delete enemy/transform from projectile if enemy despawned and add new one - might be easy way to do this in bevy.
         }
 
         projectile_anim_timer.tick(time.delta());
@@ -738,7 +873,7 @@ pub fn get_rotation_from_direction(direction: Vec3, offset: f32) -> Quat {
 fn spawn_sprite(
     weapon: &Weapon,
     direction_translation: Vec3,
-    origin: &Vec3,
+    origin: Vec3,
     texture_atlases: &mut ResMut<Assets<TextureAtlas>>,
     assets: &Res<AssetServer>,
     commands: &mut Commands,
@@ -784,12 +919,8 @@ fn spawn_sprite(
         Projectile {
             props: weapon.projectile_props.clone(),
         },
-        DealsDamage {
+        ProjectileDealsDamage {
             damage: weapon.projectile_props.projectile_base_damage,
-            tick_timer: Timer::from_seconds(
-                weapon.projectile_props.projectile_fire_rate,
-                TimerMode::Once,
-            ),
         },
     ));
 

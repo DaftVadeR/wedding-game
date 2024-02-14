@@ -22,6 +22,11 @@ pub struct DealsDamage {
 }
 
 #[derive(Component, Debug)]
+pub struct ProjectileDealsDamage {
+    pub damage: f32,
+}
+
+#[derive(Component, Debug)]
 pub struct Movable {
     pub speed: f32,
     pub direction: Direction,

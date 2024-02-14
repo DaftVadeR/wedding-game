@@ -6,7 +6,7 @@ use super::{
 };
 use crate::{
     game::GamePlayState,
-    main_menu::{BLACK, BLUE, BORDER_COLOR, LIGHT_BLUE, LIGHT_TEAL, PURPLISH, WHITE},
+    main_menu::{BLACK, BLUE, BORDER_COLOR, DARK_PURPLE, LIGHT_BLUE, LIGHT_TEAL, PURPLISH, WHITE},
     GameState,
 };
 
@@ -33,6 +33,9 @@ struct LvlUpContainer;
 
 #[derive(Component)]
 struct TitleUi;
+
+#[derive(Component)]
+struct SmallTitleUi;
 
 #[derive(Component)]
 struct LvlUpDialogContainer;
@@ -81,11 +84,12 @@ fn get_upgrades_container() -> (NodeBundle, UpgradesContainer, Name) {
         NodeBundle {
             style: Style {
                 //XXX using Px here because UI isn't based on camera size, just window size
-                flex_basis: Val::Percent(50.),
+                width: Val::Percent(50.),
                 flex_direction: FlexDirection::Column,
-                margin: UiRect::new(Val::Px(0.), Val::Px(0.), Val::Px(20.), Val::Px(0.)),
+                margin: UiRect::new(Val::Px(0.), Val::Px(0.), Val::Px(20.), Val::Px(20.)),
                 ..default()
             },
+            background_color: BLACK.into(),
             ..default()
         },
         UpgradesContainer,
@@ -111,10 +115,36 @@ fn get_title(lvl: u32, assets: &Res<AssetServer>) -> (TextBundle, Name, TitleUi)
                 sections: Vec::from([section]),
                 ..default()
             },
-            ..Default::default()
+
+            ..default()
         },
         Name::new("Level number"),
         TitleUi,
+    )
+}
+
+fn get_small_title(txt: String, assets: &Res<AssetServer>) -> (TextBundle, Name, SmallTitleUi) {
+    let font = assets.load("fonts/patua_one/patuaone.ttf");
+
+    let section = TextSection {
+        value: txt,
+        style: TextStyle {
+            font: font,
+            font_size: 24.0,
+            color: LIGHT_TEAL.into(),
+        },
+    };
+
+    (
+        TextBundle {
+            text: Text {
+                sections: Vec::from([section]),
+                ..default()
+            },
+            ..Default::default()
+        },
+        Name::new("Level number"),
+        SmallTitleUi,
     )
 }
 
@@ -139,6 +169,11 @@ fn get_weapon_title(
                 sections: Vec::from([section]),
                 ..default()
             },
+            style: Style {
+                margin: UiRect::all(Val::Px(0.)),
+                padding: UiRect::all(Val::Px(0.)),
+                ..default()
+            },
             ..Default::default()
         },
         Name::new(weapon.name.clone()),
@@ -150,7 +185,7 @@ fn get_weapon_desc(weapon: &Weapon, assets: &Res<AssetServer>) -> (TextBundle, N
     let font = assets.load("fonts/patua_one/patuaone.ttf");
 
     let section = TextSection {
-        value: weapon.name.clone(),
+        value: weapon.desc.clone(),
         style: TextStyle {
             font: font,
             font_size: 18.0,
@@ -163,6 +198,11 @@ fn get_weapon_desc(weapon: &Weapon, assets: &Res<AssetServer>) -> (TextBundle, N
             text: Text {
                 sections: Vec::from([section]),
 
+                ..default()
+            },
+            style: Style {
+                margin: UiRect::all(Val::Px(0.)),
+                padding: UiRect::all(Val::Px(0.)),
                 ..default()
             },
             ..Default::default()
@@ -201,18 +241,20 @@ fn get_weapon_button(weapon: &Weapon) -> (ButtonBundle, WeaponButtonUI) {
     (
         ButtonBundle {
             style: Style {
-                height: Val::Px(500.),
-                width: Val::Px(500.),
+                width: Val::Percent(100.),
+                min_width: Val::Percent(100.),
+                // flex_basis: Val::Percent(100.),
                 flex_direction: FlexDirection::Column,
-                column_gap: Val::Px(10.),
+                // column_gap: Val::Px(10.),
+                row_gap: Val::Px(10.),
                 // align_content: AlignContent::Center,
                 // justify_items: JustifyItems::Center,
-                padding: UiRect::all(Val::Px(5.)),
+                padding: UiRect::px(15., 15., 10., 15.),
                 border: UiRect::all(Val::Px(1.)),
                 ..default()
             },
             background_color: LIGHT_BLUE.into(),
-            border_color: PURPLISH.into(),
+            border_color: DARK_PURPLE.into(),
             ..default()
         },
         WeaponButtonUI {
@@ -244,6 +286,7 @@ fn on_level_up(
                 .spawn(get_dialog_container())
                 .with_children(|commands| {
                     commands.spawn(get_title(lvl.level, &assets));
+                    commands.spawn(get_small_title("Pick a skill.".into(), &assets));
                     commands
                         .spawn(get_upgrades_container())
                         .with_children(|commands| {
@@ -279,8 +322,8 @@ fn weapon_button_select(
     for (interaction, mut color, mut border_color, weapon_btn) in &mut interaction_query {
         match *interaction {
             Interaction::Pressed => {
-                *color = LIGHT_BLUE.into();
-                *border_color = LIGHT_BLUE.into();
+                *color = DARK_PURPLE.into();
+                *border_color = LIGHT_TEAL.into();
 
                 player.weapons.push(weapon_btn.weapon.clone());
 
@@ -292,7 +335,7 @@ fn weapon_button_select(
                 // next_game_state.set(GameState::CharacterSelect);
             }
             Interaction::Hovered => {
-                *color = LIGHT_BLUE.into();
+                *color = DARK_PURPLE.into();
                 *border_color = LIGHT_TEAL.into();
             }
             Interaction::None => {
