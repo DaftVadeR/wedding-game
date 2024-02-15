@@ -27,8 +27,9 @@ pub struct GivesExperience {
 
 #[derive(Debug, Component)]
 pub struct Enemy {
-    width: f32,
-    height: f32,
+    pub width: f32,
+    pub height: f32,
+    pub is_boss: bool,
 }
 
 #[derive(Debug)]
@@ -54,7 +55,7 @@ impl LevelSpawns {
             global_timer: Stopwatch::new(),
             stage_timer: Timer::from_seconds(15., TimerMode::Repeating),
             wave_timer: Timer::from_seconds(10., TimerMode::Repeating),
-            current_stage: 3,
+            current_stage: 1,
             wave_type: SpawnWave {
                 enemy: EnemyType::Basic,
             },
@@ -144,6 +145,7 @@ fn check_for_spawns(
         level_spawns.current_stage = level_spawns.current_stage + 1;
 
         if level_spawns.current_stage > 5 && state.get() != &GamePlayState::Boss {
+            println!("Boss stage");
             next_state.set(GamePlayState::Boss);
         }
     }
@@ -161,19 +163,17 @@ fn spawn_boss(
 ) {
     let transform = player_query.single();
 
-    if level_spawns.wave_timer.just_finished() {
-        let player_position: Vec2 = Vec2::new(transform.translation.x, transform.translation.y);
+    let player_position: Vec2 = Vec2::new(transform.translation.x, transform.translation.y);
 
-        spawn_enemies(
-            1,
-            true,
-            &mut commands,
-            &asset_server,
-            &mut texture_atlases,
-            player_position,
-            &level_spawns,
-        );
-    }
+    spawn_enemies(
+        1,
+        true,
+        &mut commands,
+        &asset_server,
+        &mut texture_atlases,
+        player_position,
+        &level_spawns,
+    );
 }
 
 fn get_basic_enemy(
@@ -569,10 +569,13 @@ fn spawn_enemies(
                 is_collided: false,
                 is_state_changed: true,
             },
-            Health { total: 10. },
+            Health {
+                total: if is_boss { 200. } else { 20. },
+            },
             Enemy {
                 width: enemy_width,
                 height: enemy_height,
+                is_boss: is_boss,
             },
             GivesExperience { experience: 20 },
             DealsDamage {

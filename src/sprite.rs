@@ -24,6 +24,7 @@ pub struct DealsDamage {
 #[derive(Component, Debug)]
 pub struct ProjectileDealsDamage {
     pub damage: f32,
+    pub is_triggered: bool,
 }
 
 #[derive(Component, Debug)]

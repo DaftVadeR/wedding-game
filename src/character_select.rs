@@ -85,7 +85,7 @@ pub fn get_lisa_character() -> CharacterBlock {
         pic_sprite: "sprites/player/lisa.png",
         selected_character_state: SelectedCharacterState::Lisa,
         // starting_weapon: get_horse_weapon(),
-        starting_weapon: get_lightning_weapon()
+        starting_weapon: get_splash_weapon()
     }
 }
 

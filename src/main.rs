@@ -1,7 +1,7 @@
 use std::hash::Hash;
 
-use bevy::core_pipeline::clear_color::ClearColorConfig;
 use bevy::prelude::*;
+use bevy::{core_pipeline::clear_color::ClearColorConfig, window::WindowMode};
 
 use bevy::input::common_conditions::input_toggle_active;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
@@ -46,6 +46,7 @@ fn main() {
                         title: "The Valiant Duo".into(),
                         resolution: (WIDTH, HEIGHT).into(),
                         resizable: true,
+                        mode: WindowMode::BorderlessFullscreen,
                         ..default()
                     }),
                     ..default()

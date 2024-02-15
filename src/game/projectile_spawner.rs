@@ -35,7 +35,7 @@ impl Plugin for ProjectileSpawnerPlugin {
                 Update,
                 (
                     update_projectiles,
-                    // update_projectile_collisions,
+                    update_projectile_collisions,
                     update_explosions_damage_effects,
                     spawn_weapon_projectiles,
                 )
@@ -340,7 +340,8 @@ fn spawn_weapon_projectiles(
             match weapon.projectile_props.projectile_category {
                 ProjectileCategory::Projectile
                 | ProjectileCategory::ProjectileAoe
-                | ProjectileCategory::Instant => {
+                | ProjectileCategory::Instant
+                | ProjectileCategory::InstantAoe => {
                     println!("Firing projectile towards enemy");
                     spawn_projectile_for_aim_method(
                         weapon,
@@ -397,7 +398,7 @@ fn update_projectile_collisions(
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
     mut commands: Commands,
     mut enemy_query: Query<
-        (&Transform, &mut Health, &GivesExperience, Entity),
+        (&Transform, &mut Health, &GivesExperience, &Enemy, Entity),
         (With<Enemy>, Without<Player>),
     >,
     mut projectile_query: Query<
@@ -412,6 +413,7 @@ fn update_projectile_collisions(
     >,
     mut player_query: Query<(&mut CanLevel, &Player), With<Player>>,
     mut next_play_state: ResMut<NextState<GamePlayState>>,
+    mut next_state: ResMut<NextState<GameState>>,
     time: Res<Time>,
 ) {
     let (mut lvl, player) = player_query.single_mut();
@@ -419,7 +421,7 @@ fn update_projectile_collisions(
     for (
         projectile_transform,
         mut projectile_movable,
-        projectile_damage,
+        mut projectile_damage,
         projectile,
         projectile_entity,
     ) in projectile_query.iter_mut()
@@ -445,9 +447,13 @@ fn update_projectile_collisions(
         //     collided = true;
         // }
 
+        if projectile_damage.is_triggered {
+            continue;
+        }
+
         let mut damage_events: Vec<DamageEvent> = Vec::new();
 
-        for (enemy_transform, _, _, enemy) in enemy_query.iter() {
+        for (enemy_transform, _, _, _, enemy) in enemy_query.iter() {
             let distance = enemy_transform
                 .translation
                 .distance(projectile_transform.translation);
@@ -463,11 +469,13 @@ fn update_projectile_collisions(
 
             // Collided
             if distance < collision_distance {
-                if projectile.props.projectile_category == ProjectileCategory::ProjectileAoe {
+                if projectile.props.projectile_category == ProjectileCategory::ProjectileAoe
+                    || projectile.props.projectile_category == ProjectileCategory::InstantAoe
+                {
                     // Collided with an enemy. Now trigger damage to everything in area.
-                    // let damage_radius = projectile.props.projectile_aoe_radius + collision_distance;
+                    let damage_radius = projectile.props.projectile_aoe_radius + collision_distance;
 
-                    for (enemy_transform, _, _, enemy) in enemy_query.iter() {
+                    for (enemy_transform, _, _, _, enemy) in enemy_query.iter() {
                         let aoe_distance = projectile_transform
                             .translation
                             .distance(enemy_transform.translation);
@@ -489,64 +497,48 @@ fn update_projectile_collisions(
                             });
                         }
                     }
-
-                    // if enemy_health.total <= 0. {
-                    //     commands.entity(enemy).despawn_recursive();
-
-                    //     spawn_explosion_at_position(
-                    //         &assets,
-                    //         &mut texture_atlases,
-                    //         &mut commands,
-                    //         &enemy_transform.translation,
-                    //     );
-
-                    //     if add_player_experience(exp.experience, &mut lvl) {
-                    //         println!("Player leveled up to {}", lvl.level);
-                    //         next_play_state.set(GamePlayState::LevelUp);
-                    //     }
-                    // } else {
-                    //     spawn_damage_effect_at_position(
-                    //         &assets,
-                    //         &mut texture_atlases,
-                    //         &mut commands,
-                    //         &enemy_transform.translation,
-                    //     );
-                    // }
+                } else {
+                    damage_events.push(DamageEvent {
+                        damage: projectile_damage.damage,
+                        entity_id: enemy.index(),
+                        damage_type: projectile.props.projectile_damage_type,
+                    });
                 }
 
                 break;
-            } else {
-                damage_events.push(DamageEvent {
-                    damage: projectile_damage.damage,
-                    entity_id: enemy.index(),
-                    damage_type: projectile.props.projectile_damage_type,
-                });
             }
         }
 
         // Apply dama ge events
-        for event in damage_events {
-            for (enemy_transform, mut enemy_health, exp, enemy) in enemy_query.iter_mut() {
-                if enemy.index() == event.entity_id {
+        for event in damage_events.iter() {
+            for (enemy_transform, mut enemy_health, exp, enemy, entity) in enemy_query.iter_mut() {
+                if entity.index() == event.entity_id {
                     enemy_health.total -= event.damage;
                     println!("applying dmg event {} {}", event.damage, enemy_health.total);
 
                     if enemy_health.total <= 0. {
-                        // if add_player_experience(exp.experience, &mut lvl) {
-                        //     println!("Player leveled up to {}", lvl.level);
-                        //     if player.weapons.len() < WeaponsEnum::VALUES.len() {
-                        //         next_play_state.set(GamePlayState::LevelUp);
-                        //     }
-                        // }
+                        println!("Enemy died {} {}", entity.index(), enemy_health.total);
+                        if add_player_experience(exp.experience, &mut lvl) {
+                            println!("Player leveled up to {}", lvl.level);
+                            if player.weapons.len() < WeaponsEnum::VALUES.len() {
+                                next_play_state.set(GamePlayState::LevelUp);
+                            }
+                        }
 
-                        // commands.entity(enemy).despawn_recursive();
+                        if enemy.is_boss {
+                            next_state.set(GameState::GameWon);
+                            next_play_state.set(GamePlayState::Unloaded);
+                            return;
+                        }
 
-                        // spawn_explosion_at_position(
-                        //     &assets,
-                        //     &mut texture_atlases,
-                        //     &mut commands,
-                        //     &enemy_transform.translation,
-                        // );
+                        commands.entity(entity).despawn_recursive();
+
+                        spawn_explosion_at_position(
+                            &assets,
+                            &mut texture_atlases,
+                            &mut commands,
+                            &enemy_transform.translation,
+                        );
                     } else {
                         spawn_damage_effect_at_position(
                             &assets,
@@ -555,11 +547,17 @@ fn update_projectile_collisions(
                             &enemy_transform.translation,
                         );
                     }
-
-                    projectile_movable.is_moving = false;
-                    commands.entity(projectile_entity).despawn_recursive();
                 }
             }
+        }
+
+        if damage_events.len() > 0
+            && projectile.props.projectile_category != ProjectileCategory::Instant
+            && projectile.props.projectile_category != ProjectileCategory::InstantAoe
+        {
+            projectile_movable.is_moving = false;
+            projectile_damage.is_triggered = true;
+            commands.entity(projectile_entity).despawn_recursive();
         }
     }
 }
@@ -690,7 +688,6 @@ pub fn update_projectiles(
             if projectile.props.projectile_category == ProjectileCategory::Projectile
                 || projectile.props.projectile_category == ProjectileCategory::ProjectileAoe
             {
-                println!("Updating projectile");
                 let normal_speed_translation = time.delta_seconds() * projectile_movable.speed;
 
                 let diagonal_speed_translation =
@@ -726,7 +723,9 @@ pub fn update_projectiles(
         if projectile_anim_timer.just_finished() {
             projectile_sprite.index =
                 if projectile_sprite.index >= projectile_movable.current_animation_indices.last {
-                    if projectile.props.projectile_category == ProjectileCategory::Instant {
+                    if projectile.props.projectile_category == ProjectileCategory::Instant
+                        || projectile.props.projectile_category == ProjectileCategory::InstantAoe
+                    {
                         // despawn after animation finished - only fir instant weapons
                         commands.entity(entity).despawn_recursive();
                     }
@@ -967,6 +966,7 @@ fn spawn_sprite(
         },
         ProjectileDealsDamage {
             damage: weapon.projectile_props.projectile_base_damage,
+            is_triggered: false,
         },
     ));
 

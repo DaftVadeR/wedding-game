@@ -56,7 +56,8 @@ pub enum ProjectileCategory {
     #[default]
     Projectile,
     ProjectileAoe,
-    Instant
+    Instant,
+    InstantAoe,
 }
 
 #[derive(States, PartialEq, Eq, Default, Debug, Clone, Hash)]
@@ -244,7 +245,7 @@ pub fn get_horse_weapon() -> Weapon {
         projectile_props: ProjectileProps {
             projectile_sprite: "sprites/weapons/horse.png",
             projectile_sprite_scale: 0.4,
-            projectile_category: ProjectileCategory::Projectile,            
+            projectile_category: ProjectileCategory::ProjectileAoe,            
             projectile_aim_method: ProjectileAimMethod::PlayerDirection,
             projectile_sprite_indices: AnimationIndices { first: 9, last: 11 },
             projectile_sprite_height: 96.,
@@ -280,7 +281,7 @@ pub fn get_energy_weapon() -> Weapon {
             projectile_sprite_cols: 9,
             projectile_aoe_radius: 0.,
             projectile_damage_type: DamageType::Psychological,
-            projectile_base_damage: 10.,
+            projectile_base_damage: 15.,
             projectile_rotation_offset: 0.,
             projectile_aoe_damage_scale: 0.5,
             projectile_aim_range: 150.,
@@ -307,7 +308,7 @@ pub fn get_lightning_weapon() -> Weapon {
             projectile_sprite_cols: 8,
             projectile_aoe_radius: 0.,
             projectile_damage_type: DamageType::Lightning,
-            projectile_base_damage: 5.,
+            projectile_base_damage: 15.,
             projectile_rotation_offset: std::f32::consts::FRAC_PI_2,
             projectile_aoe_damage_scale: 0.,
             projectile_aim_range: 150.,
@@ -320,23 +321,23 @@ pub fn get_splash_weapon() -> Weapon {
     Weapon {
         name: "Big splash".into(),
         desc: "Before the fight started, you snuck onto the lawn and overclocked the water sprinklers. This skill lets you take advantage of your preparedness.".into(),
-        tick_timer: Timer::from_seconds(10., TimerMode::Repeating),
+        tick_timer: Timer::from_seconds(4., TimerMode::Repeating),
         variant: WeaponsEnum::Splash,
         projectile_props: ProjectileProps {
             projectile_sprite: "sprites/weapons/splash.png",
             projectile_sprite_scale: 0.6,
-            projectile_category: ProjectileCategory::Instant,
+            projectile_category: ProjectileCategory::InstantAoe,
             projectile_aim_method:ProjectileAimMethod::RandomEnemy,
             projectile_sprite_indices: AnimationIndices { first: 0, last: 19 },  
             projectile_sprite_height: 77.,
             projectile_sprite_width: 66.,
             projectile_sprite_rows: 4,
             projectile_sprite_cols: 5,
-            projectile_aoe_radius: 10.,
+            projectile_aoe_radius: 30.,
             projectile_damage_type: DamageType::Water,
             projectile_base_damage: 5.,
             projectile_rotation_offset: std::f32::consts::FRAC_PI_2,
-            projectile_aoe_damage_scale: 0.,
+            projectile_aoe_damage_scale: 0.8,
             projectile_aim_range: 150.,
             projectile_sprite_anchor: bevy::sprite::Anchor::BottomCenter,
         },
