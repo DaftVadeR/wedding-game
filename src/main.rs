@@ -26,10 +26,10 @@ const HEIGHT: f32 = 900.0;
 
 #[derive(States, PartialEq, Eq, Default, Debug, Clone, Hash)]
 pub enum GameState {
+    #[default]
     MainMenu,
     CharacterSelect,
     Corridor,
-    #[default]
     Gameplay,
     GameWon,
 }
@@ -65,9 +65,9 @@ fn main() {
             GameplayPlugin,
             /*GamePlugin, GameOver*/
         ))
-        .add_plugins(
-            WorldInspectorPlugin::default().run_if(input_toggle_active(false, KeyCode::Escape)),
-        )
+        // .add_plugins(
+        //     WorldInspectorPlugin::default().run_if(input_toggle_active(false, KeyCode::Escape)),
+        // )
         // .insert_resource(WinitSettings::desktop_app())
         .run();
 }

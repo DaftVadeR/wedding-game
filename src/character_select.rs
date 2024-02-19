@@ -74,7 +74,6 @@ pub fn get_ailsa_character() -> CharacterBlock {
         pic_sprite: "sprites/player/ailsa.png",
         selected_character_state: SelectedCharacterState::Ailsa,
         starting_weapon: get_guitar_weapon(),
-        // starting_weapon: get_energy_weapon()
     }
 }
 
@@ -84,8 +83,7 @@ pub fn get_lisa_character() -> CharacterBlock {
         desc: "A friendly cleric who smites those not worthy of the grace of Paul Simon's greatness! A disarming smile and calm demeanor belie the terrifying badass within.".to_string(),
         pic_sprite: "sprites/player/lisa.png",
         selected_character_state: SelectedCharacterState::Lisa,
-        // starting_weapon: get_horse_weapon(),
-        starting_weapon: get_splash_weapon()
+        starting_weapon: get_horse_weapon(),
     }
 }
 

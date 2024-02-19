@@ -123,7 +123,7 @@ fn check_for_spawns(
     level_spawns.wave_timer.tick(time.delta());
     level_spawns.stage_timer.tick(time.delta());
 
-    let num_enemies_per_spawn = 5 * level_spawns.current_stage;
+    let num_enemies_per_spawn = 10 * level_spawns.current_stage;
 
     if level_spawns.wave_timer.just_finished() {
         let player_position: Vec2 = Vec2::new(transform.translation.x, transform.translation.y);
@@ -577,7 +577,7 @@ fn spawn_enemies(
                 height: enemy_height,
                 is_boss: is_boss,
             },
-            GivesExperience { experience: 20 },
+            GivesExperience { experience: 10 * (1 + level_spawns.current_stage / 10) as u64 },
             DealsDamage {
                 damage: (10. + (level_spawns.current_stage as f32)),
                 tick_timer: Timer::from_seconds(1., TimerMode::Once),
@@ -638,7 +638,7 @@ fn update_enemy_collisions(
         enemy_damage.tick_timer.tick(time.delta());
 
         // Check for player collision
-        let distance = enemy_transform
+        let distance: f32 = enemy_transform
             .translation
             .distance(player_transform.translation);
 

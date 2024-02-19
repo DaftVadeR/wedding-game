@@ -14,7 +14,7 @@ impl Plugin for GameOverPlugin {
             OnEnter(GamePlayState::GameOver),
             (reset_camera, spawn_game_over_ui),
         )
-        .add_systems(OnEnter(GamePlayState::Restart), unload)
+        // .add_systems(OnEnter(GamePlayState::Restart), unload)
         .add_systems(
             Update,
             (
@@ -167,9 +167,9 @@ fn spawn_game_over_ui(mut commands: Commands, assets: Res<AssetServer>) {
     commands.spawn(menu_parent).with_children(|commands| {
         commands.spawn(menu_title).with_children(|commands| {
             commands.spawn(title_text);
-            commands.spawn(restart_button).with_children(|commands| {
-                commands.spawn(restart_text);
-            });
+            // commands.spawn(restart_button).with_children(|commands| {
+            //     commands.spawn(restart_text);
+            // });
             commands.spawn(skip_button).with_children(|commands| {
                 commands.spawn(skip_text);
             });
