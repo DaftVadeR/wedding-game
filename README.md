@@ -1,6 +1,6 @@
 An old Bevy v0.12 Vampire Surivors clone I tried doing in a few weeks for my sibling's wedding. Was a mad rush so the code is a nightmare, but it works, with XP bugs and bad damage-modifier handling.
 
-NB TO RUN THIS:
+*NB TO RUN THIS:
 
 - This uses an old version of Bevy and Rust from 2024/25. Please ensure you're using the expected toolchain by running ```rustup default 1.84.1```.
 - On Linux, ensure that you update the vendor file /home/%user%/.cargo/registry/src/index.crates.io-6f17d22bba15001f/bevy_render-0.12.1/src/view/window/mod.rs.rs in the bevy source files to have the code below. There's a bug in the older code due to wayland changes on Linux, if you have crashes running it. The path will vary potentially, but window/mod.rs in the bevy render crate under 0.12.1 should be the one:
